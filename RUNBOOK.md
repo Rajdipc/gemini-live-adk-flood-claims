@@ -112,6 +112,7 @@ Change the three lines marked `<-- EDIT`:
 | `GOOGLE_CLOUD_PROJECT` | `my-tideline-123` | The project that holds and pays for everything |
 | `CLAIMDESK_GCS_BUCKET` | `my-tideline-123-claimdesk` | Must be globally unique. Holds photos, packets, raw data and FEMA PDFs. |
 | `DEPLOY_IAP_USER_EMAIL` | `you@example.com` | The **only** account allowed to open the app |
+| `DEPLOY_IAP_EXTRA_USERS` | *(empty)* | Optional extra accounts for IAP, comma-separated. Accounts outside your organization can be refused by the `iam.allowedPolicyMemberDomains` org policy. |
 
 Leave everything else as it is for now:
 - region `us-central1`, models on `global`;
@@ -231,15 +232,15 @@ This phase is optional but recommended for accuracy. It lets Maya answer general
 cd ~/gemini-live-adk-flood-claims && source deploy/00_variables.sh
 uv run --no-sync python -m grounding.fetch_fema_docs --upload
 ```
-fema.gov often blocks scripted downloads with **403**. For each `[MISSING]` line the script prints a FEMA page and a file name.
+The SFIP Dwelling Form downloads automatically from govinfo.gov. fema.gov blocks scripted downloads with **403**, so the other files usually show `[MISSING]` and the script ends with *"Optional documents not present … Grounding works without them"* (exit code 0). **Grounding works with the SFIP alone**, so you can go straight to 7.2 and add the others later. What each one adds: [grounding.md](docs/grounding.md#running-with-only-the-sfip-dwelling-form). To add them (the Claims Handbook helps most), the script prints a FEMA page and a file name for each `[MISSING]` line:
 1. Open that page in your browser and download the PDF.
 2. In Cloud Shell, click **⋮ → Upload**, then rename the file into place:
    ```bash
-   mv ~/<downloaded-file>.pdf ~/gemini-live-adk-flood-claims/grounding/raw/sfip_dwelling_form.pdf      # use the name the script printed
+   mv ~/<downloaded-file>.pdf ~/gemini-live-adk-flood-claims/grounding/raw/nfip_claims_handbook.pdf      # use the name the script printed
    ```
-3. Re-run `uv run --no-sync python -m grounding.fetch_fema_docs --upload`.
+3. Re-run `uv run --no-sync python -m grounding.fetch_fema_docs --upload` (and `bash deploy/03b_vertex_ai_search.sh` if the engine already exists).
 
-✅ You see `Uploaded N file(s)`, with at least `sfip_dwelling_form.pdf` and `nfip_claims_handbook.pdf`.
+✅ You see `Uploaded N file(s)`, with at least `sfip_dwelling_form.pdf`.
 
 **7.2 Create the data store, import the PDFs, create the search engine**
 ```bash
@@ -434,7 +435,9 @@ Last step: delete the code from Cloud Shell with `rm -rf ~/gemini-live-adk-flood
 | `uv: command not found` after reconnecting | Run `source ~/.bashrc`. If it's still missing, re-run step 2.1. |
 | A long download stopped when the tab closed | Run it inside `tmux`. `fetch_openfema` resumes where it stopped. |
 | `No space left on device` | Delete `~/gemini-live-adk-flood-claims/data/raw` after the upload to GCS (step 6.2) |
-| `fetch_fema_docs` says `[MISSING]` / 403 | Expected. Download those PDFs in your browser and upload them (step 7.1). |
+| `fetch_fema_docs` says `[MISSING]` / 403 | Expected for everything except the SFIP. Grounding works with the SFIP alone; optionally download the others in your browser (step 7.1). |
+| G-01/G-03/G-04 answered without a FEMA citation | Expected with only the SFIP indexed: the passages didn't fit, so Maya used her skill knowledge. Pass if the answer is correct and makes no promise. G-02 must be cited. |
+| 06: `User ... is not in permitted organization` | The org policy `iam.allowedPolicyMemberDomains` blocks accounts from other domains. Use an account in your organization, or ask an org admin for an exception. |
 | 03b: `PERMISSION_DENIED` on import | The service-agent grant can take a minute to apply. Re-run `bash deploy/03b_vertex_ai_search.sh`. |
 | 03b: test query has no `results` / "no documents indexed" | Indexing isn't finished. Wait 10 minutes and re-run 03b (safe), or raise `INDEX_TIMEOUT_S`. |
 | 03b: "Import finished with failures" | Read the printed `errorSamples`. Usually a non-PDF or empty file in `gs://$BUCKET/grounding/fema/`; remove it and re-run. |

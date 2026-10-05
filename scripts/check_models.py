@@ -58,7 +58,9 @@ def check_text(project: str, location: str, model: str) -> str:
     response = _client(project, location).models.generate_content(
         model=model,
         contents="Reply with the single word: ready",
-        config=types.GenerateContentConfig(max_output_tokens=10, temperature=0),
+        # Flash "thinks" first and thinking tokens count toward this cap; with
+        # a tiny cap (e.g. 10) the reply comes back empty. 256 is still cheap.
+        config=types.GenerateContentConfig(max_output_tokens=256, temperature=0),
     )
     elapsed = int((time.monotonic() - started) * 1000)
     return f"OK   ({elapsed} ms) -> {(response.text or '').strip()[:20]!r}"

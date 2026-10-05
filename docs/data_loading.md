@@ -147,9 +147,9 @@ gcloud storage buckets describe "gs://$CLAIMDESK_GCS_BUCKET" --format="value(loc
    ```
    Expected output (numbers grow over time):
    ```text
-   NfipPolicies  CO  policyEffectiveDate >= 2025-01-01:     23,586 rows
-   NfipPolicies  TX  policyEffectiveDate >= 2025-01-01:    988,180 rows  (will sample 50,000)
-   NfipPolicies  FL  policyEffectiveDate >= 2025-01-01:  1,966,465 rows  (will sample 50,000)
+   NfipPolicies  CO  policyEffectiveDate >= 2025-10-05:     12,902 rows
+   NfipPolicies  TX  policyEffectiveDate >= 2025-10-05:    519,753 rows  (will sample 50,000)
+   NfipPolicies  FL  policyEffectiveDate >= 2025-10-05:  1,059,138 rows  (will sample 50,000)
    ...
    NfipClaims    FL  dateOfLoss >= 2015-01-01:           201,475 rows
    ```
@@ -165,7 +165,7 @@ gcloud storage buckets describe "gs://$CLAIMDESK_GCS_BUCKET" --format="value(loc
 
 What happens:
 - Files land in `data/raw/openfema/<nfip_policies|nfip_claims>/state=XX/part-00000.jsonl.gz`. The `data/` folder is git-ignored.
-- **Policies** are capped by `--max-per-state` (default 50,000). Whole pages are taken *evenly spread* across all matching rows, so the sample covers every month from 2025 onward rather than just January. Use `--max-per-state 0` for everything (~3.9M rows; slow).
+- **Policies** are capped by `--max-per-state` (default 50,000). Whole pages are taken *evenly spread* across all matching rows, so the sample covers every month of the window rather than just its first weeks. The window is **the last 365 days** by default (`--policies-since`): NFIP policies run for one year, so most sampled policies are still **active** today. With an old fixed date most of them would be expired, and every demo call would land in `policy_review`. Use `--max-per-state 0` for everything (~3.9M rows; slow).
 - **Claims** since 2015 are all downloaded (~460k rows).
 - `--upload` copies each finished file to `gs://$CLAIMDESK_GCS_BUCKET/raw/openfema/...`. Files whose MD5 checksum already matches the bucket copy are skipped. After each state is uploaded, **older `part-*` files in that state's bucket folder that are not part of this download are deleted**, because the loader reads every part file in the folder (otherwise a smaller re-download, or switching `--gzip` on/off, would mix old rows in). Add `--keep-stale-parts` to turn that off.
 - **Interrupted?** Run the same command again. Finished pages and already-uploaded files are skipped. `--force` starts from scratch. Changing the plan (dates, caps, `--page-size`, `--gzip`) also re-plans the affected states.

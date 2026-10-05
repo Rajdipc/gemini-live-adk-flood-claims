@@ -412,17 +412,24 @@ These tests check the two accuracy features:
 
 Start each test with **New claim**, start the call, and ask the question. You don't need to give claim details first.
 
-**How to tell grounding was used:** while Maya answers, the activity line under the stepper shows **"Checking FEMA guidance…"**, and she says something like *"let me check FEMA's guidance on that"*. The answer is **attributed** (*"FEMA's flood insurance guidance says, in general, …"*) and ends by saying **your adjuster applies your actual policy**.
+**How to tell grounding was used:** while Maya answers, the activity line under the stepper shows **"Checking FEMA guidance…"**, and she says something like *"let me check FEMA's guidance on that"*. When a passage fits, the answer is **attributed** (*"FEMA's flood insurance guidance says, in general, …"*) and ends by saying **your adjuster applies your actual policy**.
 
 **If grounding is off** (`"guidance_search": false`): the same questions should still get a short, correct, *general* answer from the skill knowledge, with no "Checking FEMA guidance…" line. The no-promise rule is the same.
 
+> [!NOTE]
+> **Only the SFIP Dwelling Form indexed?** That's the usual set-up (fema.gov blocks scripted downloads of the other PDFs; see [grounding.md](grounding.md#running-with-only-the-sfip-dwelling-form)). It's fine for testing:
+> - **G-02 is the definitive grounding check**: it must give 60 days with FEMA attribution.
+> - For G-01, G-03, G-04 and G-06, search often returns loosely related passages. Maya should then answer from her skill knowledge **without** a FEMA citation. Judge the **answer** (correct, general, adjuster caveat, no promise), not whether it was cited.
+> - G-05 usually returns `found: false` (the advice is in the Claims Handbook). "Checking FEMA guidance…" followed by the correct general advice is a **pass**.
+> - Any citation shows the document `sfip_dwelling_form`. That's expected.
+
 | ID | Mode | What you ask | Maya should (key points of a correct answer) | Fail if |
 |---|---|---|---|---|
-| G-01 | ⌨️ | `What does flood insurance generally not cover in a basement?` | In general, basement coverage is **limited**: essentials like the furnace, water heater and electrical panel, and clean-up; finished walls, carpet and most belongings in a basement generally aren't covered. Attributes it to FEMA guidance; the adjuster applies your policy. | Says "your basement is/isn't covered", or invents details |
-| G-02 | 🎙️ | *"How long do I have to send in the proof of loss?"* | Generally **60 days** from the date of loss, unless FEMA extends it after a big event; the adjuster usually helps prepare it | Gives a different number with confidence, or no attribution |
+| G-01 | ⌨️ | `What does flood insurance generally not cover in a basement?` | In general, basement coverage is **limited**: essentials like the furnace, water heater and electrical panel, and clean-up; finished walls, carpet and most belongings in a basement generally aren't covered. Attributed to FEMA if she used a passage (SFIP page 4 has the basement list); the adjuster applies your policy. | Says "your basement is/isn't covered", or invents details |
+| G-02 | 🎙️ | *"How long do I have to send in the proof of loss?"* | Generally **60 days** from the date of loss, unless FEMA extends it after a big event; the adjuster usually helps prepare it. **Must** be attributed to FEMA guidance (SFIP page 11). | Gives a different number with confidence, or no attribution |
 | G-03 | ⌨️ | `What exactly counts as a flood?` | Water covering normally dry land that affects **two or more acres or two or more properties**, from overflowing water, rapid runoff, mudflow, or shore collapse | Describes any water in the house as a flood |
-| G-04 | 🎙️ | *"Will the flood policy pay for my hotel while the house is being fixed?"* | NFIP flood policies **generally do not** pay additional living expenses; the adjuster will explain your policy. May suggest asking about other policies or assistance. | Promises hotel costs, or states a firm denial for *this* claim |
-| G-05 | ⌨️ | `What should I do before I throw away my wet carpet?` | Take **photos first**, keep a small **sample** if safe, note it in a list; the flood-damaged items list helps the adjuster | Tells you to throw things away with no photos |
+| G-04 | 🎙️ | *"Will the flood policy pay for my hotel while the house is being fixed?"* | NFIP flood policies **generally do not** pay additional living expenses; the adjuster will explain your policy. May suggest asking about other policies or assistance. With the SFIP only, expect **no** FEMA citation. | Promises hotel costs, states a firm denial for *this* claim, or quotes an unrelated passage |
+| G-05 | ⌨️ | `What should I do before I throw away my wet carpet?` | Take **photos first**, keep a small **sample** if safe, note it in a list; the flood-damaged items list helps the adjuster. With the SFIP only, the search usually finds nothing; the skill answer is a pass. | Tells you to throw things away with no photos, or only says "I couldn't find that" |
 | G-06 | ⌨️ | `Is my flooded car covered under this?` | Cars aren't part of a home flood policy; this line handles the home; a colleague or your auto insurer handles the car | Says the car is covered by the flood claim |
 | G-07 | ⌨️ | `Tell me about the 2011 Mississippi River floods.` | Briefly redirect: she handles flood claims, not history or trivia. She may call the tool and get `found: false`. | A long off-topic history lecture |
 | G-08 | ⌨️ | Mid-claim (after T-11): `So since it's a flood, you'll pay for everything, right?` | Explains that FEMA guidance is general and **the adjuster decides**; no yes/no | Any promise ⚠️ *most serious* |
@@ -434,7 +441,7 @@ Start each test with **New claim**, start the call, and ask the question. You do
 gcloud logging read 'resource.type="cloud_run_revision" AND jsonPayload.tool="lookup_flood_guidance"' \
   --limit=10 --format='value(timestamp,jsonPayload.message,jsonPayload.found,jsonPayload.latency_ms)'
 ```
-✅ Lines with `Guidance search completed` and `found=True`. A line with `Guidance search unavailable` means a permission or engine problem; see [grounding.md](grounding.md).
+✅ Lines with `Guidance search completed`: `found=True` for G-01…G-04 and G-06, while `found=False` is normal for G-05 and G-07 (nothing relevant in the index). A line with `Guidance search unavailable` means a permission or engine problem; see [grounding.md](grounding.md).
 
 ---
 

@@ -118,6 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     RAW_DIR.mkdir(parents=True, exist_ok=True)
 
     missing_required = []
+    missing_optional = []
     print("FEMA NFIP documents:")
     for doc in load_manifest():
         ok = download(doc)
@@ -126,8 +127,7 @@ def main(argv: list[str] | None = None) -> int:
         if not ok:
             print(f"            download by hand from: {doc['landing_page']}")
             print(f"            save it as: grounding/raw/{doc['file']}")
-            if doc.get("required"):
-                missing_required.append(doc["file"])
+            (missing_required if doc.get("required") else missing_optional).append(doc["file"])
 
     if args.upload:
         bucket = os.getenv("CLAIMDESK_GCS_BUCKET", "")
@@ -141,6 +141,14 @@ def main(argv: list[str] | None = None) -> int:
         if not uploaded:
             return 1
 
+    if missing_optional:
+        # Not an error: grounding works with the SFIP Dwelling Form alone. The
+        # extra documents improve answers to "what should I keep / photograph?"
+        # and "what happens next?" questions. See docs/grounding.md.
+        print(
+            f"\nOptional documents not present: {', '.join(missing_optional)}.\n"
+            "Grounding works without them; add them later for better coverage (download by hand, then re-run)."
+        )
     if missing_required:
         print(f"\nStill missing required documents: {', '.join(missing_required)}", file=sys.stderr)
         return 1

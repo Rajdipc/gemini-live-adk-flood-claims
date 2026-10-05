@@ -157,11 +157,15 @@ else:
 print("\n".join(details))
 PY
 
-# wait_for_operation <operation name> <label> <timeout seconds>
+# wait_for_operation <operation name> <label> <timeout seconds> [<initial response body>]
 # Polls the operation until done. Exits the script (code 1) on failure or
 # timeout, with a hint on what to do next.
+# Some operations (e.g. data store creation) finish immediately: the POST
+# reply already says "done": true and the operation may NOT be retrievable
+# afterwards (GET returns 404). Passing the POST reply as the 4th argument
+# lets us use it directly instead of polling.
 wait_for_operation() {
-  local op_name="$1" label="$2" timeout_s="$3"
+  local op_name="$1" label="$2" timeout_s="$3" initial_body="${4:-}"
   local waited=0 interval=15 summary status
   if [[ -z "${op_name}" ]]; then
     echo "Could not read an operation name for '${label}' from the response above." >&2
@@ -169,7 +173,19 @@ wait_for_operation() {
   fi
   echo "  waiting for ${label} (operation ${op_name##*/}, timeout ${timeout_s}s)"
   while :; do
-    API_QUIET=1 api GET "https://${HOST}/v1/${op_name}"
+    if [[ -n "${initial_body}" ]] && printf '%s' "${initial_body}" | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("done") else 1)' 2>/dev/null; then
+      API_BODY="${initial_body}"; API_CODE=200
+    else
+      API_QUIET=1 api GET "https://${HOST}/v1/${op_name}"
+    fi
+    initial_body=""
+    if [[ "${API_CODE}" != "200" ]]; then
+      # An HTTP error body has "error" but no "done"; never read it as RUNNING.
+      echo "ERROR: could not read the status of ${label} (HTTP ${API_CODE}):" >&2
+      printf '%s\n' "${API_BODY}" | head -c 600 >&2; echo >&2
+      echo "  Re-run this script (safe): finished steps are detected and reused." >&2
+      exit 1
+    fi
     summary="$(printf '%s' "${API_BODY}" | python3 -c "${OP_STATUS_PY}")"
     status="$(printf '%s\n' "${summary}" | head -n 1)"
     case "${status}" in
@@ -213,7 +229,7 @@ api POST "${BASE}/dataStores?dataStoreId=${DS}" "{
 }"
 case "${API_CODE}" in
   200) echo "data store creation started"
-       wait_for_operation "$(printf '%s' "${API_BODY}" | op_name_of)" "data store creation" "${CREATE_TIMEOUT_S}" ;;
+       wait_for_operation "$(printf '%s' "${API_BODY}" | op_name_of)" "data store creation" "${CREATE_TIMEOUT_S}" "${API_BODY}" ;;
   409) echo "data store already exists - reusing it" ;;
   *) echo "Unexpected HTTP ${API_CODE} creating the data store" >&2; exit 1 ;;
 esac
@@ -236,7 +252,7 @@ api POST "${BASE}/dataStores/${DS}/branches/0/documents:import" "{
 [[ "${API_CODE}" == "200" ]] || { echo "Import request failed (HTTP ${API_CODE})" >&2; exit 1; }
 # If the bucket permission from step 2 has not propagated yet, the import
 # fails with PERMISSION_DENIED in errorSamples: wait a minute and re-run.
-wait_for_operation "$(printf '%s' "${API_BODY}" | op_name_of)" "document import" "${IMPORT_TIMEOUT_S}"
+wait_for_operation "$(printf '%s' "${API_BODY}" | op_name_of)" "document import" "${IMPORT_TIMEOUT_S}" "${API_BODY}"
 
 echo "== 4. Create the search engine '${ENGINE}' (Enterprise tier: needed for extractive answers)"
 api POST "${BASE}/engines?engineId=${ENGINE}" "{
@@ -248,7 +264,7 @@ api POST "${BASE}/engines?engineId=${ENGINE}" "{
 }"
 case "${API_CODE}" in
   200) echo "engine creation started"
-       wait_for_operation "$(printf '%s' "${API_BODY}" | op_name_of)" "engine creation" "${CREATE_TIMEOUT_S}" ;;
+       wait_for_operation "$(printf '%s' "${API_BODY}" | op_name_of)" "engine creation" "${CREATE_TIMEOUT_S}" "${API_BODY}" ;;
   409) echo "engine already exists - reusing it" ;;
   *) echo "Unexpected HTTP ${API_CODE} creating the engine" >&2; exit 1 ;;
 esac

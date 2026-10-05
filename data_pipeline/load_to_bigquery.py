@@ -433,8 +433,11 @@ def run_sql(client, name: str, sql: str, *, dry_run: bool, max_bytes_billed: int
         dry_run=dry_run,
         use_query_cache=False,
         labels=_JOB_LABELS,
-        maximum_bytes_billed=None if dry_run else max_bytes_billed,
     )
+    # Only set the cap on real runs. Passing maximum_bytes_billed=None makes
+    # the client send the literal string "None", which the API rejects.
+    if not dry_run:
+        config.maximum_bytes_billed = max_bytes_billed
     job = client.query(sql, job_config=config, location=location or client.location)
     if dry_run:
         log.info("Dry run OK", extra={"json_fields": {"sql_file": name, "bytes_processed_estimate": job.total_bytes_processed}})

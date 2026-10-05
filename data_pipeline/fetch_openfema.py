@@ -78,7 +78,7 @@ import re
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import quote, urlencode
@@ -602,7 +602,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--dataset", choices=["policies", "claims", "all"], default="all", help="What to download.")
     parser.add_argument("--states", default=",".join(get_settings().supported_states), help="Comma-separated 2-letter state codes (default: $CLAIMDESK_SUPPORTED_STATES).")
-    parser.add_argument("--policies-since", default="2025-01-01", help="Keep policies with policyEffectiveDate >= this date.")
+    # Rolling window: NFIP policies run for 1 year, so policies that took
+    # effect in the last 365 days are (mostly) still ACTIVE today. A fixed date
+    # (e.g. 2025-01-01) slowly turns the whole sample into "expired" policies,
+    # which makes every demo call land in policy_review.
+    default_policies_since = (date.today() - timedelta(days=365)).isoformat()
+    parser.add_argument("--policies-since", default=default_policies_since, help="Keep policies with policyEffectiveDate >= this date (default: one year ago, so most sampled policies are still active).")
     parser.add_argument("--claims-since", default="2015-01-01", help="Keep claims with dateOfLoss >= this date.")
     parser.add_argument("--max-per-state", type=int, default=50_000, help="Max policies per state (0 = no cap). Sampled evenly across the result.")
     parser.add_argument("--max-claims-per-state", type=int, default=0, help="Max claims per state (0 = all).")

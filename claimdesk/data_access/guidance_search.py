@@ -84,10 +84,17 @@ class GuidanceResult:
             "question": self.question,
             "passages": [asdict(p) for p in self.passages],
             "message": self.message,
+            # Search always returns its *closest* passages, even when none of
+            # them really answers the question (common when only one PDF is
+            # indexed). So Maya must judge relevance and fall back to her
+            # built-in flood knowledge (the Agent Skill) instead of quoting an
+            # unrelated paragraph or wrongly saying "nothing was found".
             "how_to_use": (
-                "Answer in one or two plain sentences based only on these passages. Say it is FEMA's general "
-                "NFIP guidance and that the adjuster applies the claimant's actual policy. Never promise "
-                "coverage or payment for this claim."
+                "Use only passages that directly answer the question. If one does, answer in one or two plain "
+                "sentences from it, say it is FEMA's general NFIP guidance, and add that the adjuster applies the "
+                "claimant's actual policy. If none does, do not quote them; give a short general answer from your "
+                "flood-claim knowledge without citing FEMA documents, and say the adjuster will explain. Never "
+                "promise coverage or payment for this claim."
             ),
         }
 
@@ -112,14 +119,26 @@ def search_url(settings: Settings) -> str:
 
 
 def build_request_body(question: str) -> dict[str, Any]:
-    """Request body: ask for extractive segments (Enterprise tier) and snippets (any tier)."""
+    """Request body: ask for extractive answers + segments (Enterprise tier) and snippets (any tier).
+
+    * An **extractive answer** is a short, precise sentence or two.
+    * An **extractive segment** is a longer paragraph around the best match.
+
+    We ask for one answer AND two segments per document. When only one PDF is
+    indexed (for example just the SFIP Dwelling Form, because fema.gov blocks
+    scripted downloads of the others), the short answer is often from the
+    wrong section while a segment hits the right one. Example: "what isn't
+    covered in a basement?" returned an answer about artwork but a segment
+    with the actual basement coverage list. Asking for both costs nothing
+    extra on the Enterprise tier and gives Maya the right passage to use.
+    """
 
     return {
         "query": question,
         "pageSize": 5,
         "contentSearchSpec": {
             "snippetSpec": {"returnSnippet": True},
-            "extractiveContentSpec": {"maxExtractiveSegmentCount": 1, "maxExtractiveAnswerCount": 1},
+            "extractiveContentSpec": {"maxExtractiveSegmentCount": 2, "maxExtractiveAnswerCount": 1},
         },
     }
 
@@ -131,37 +150,57 @@ def _strip_markup(text: str) -> str:
     return " ".join(text.split())
 
 
+def _document_candidates(data: dict[str, Any]) -> list[tuple[str, str]]:
+    """All usable ``(text, page)`` passages of one document, best first.
+
+    Order: extractive answers, then extractive segments (duplicates removed),
+    and only if neither exists, the first successful snippet.
+    """
+
+    candidates: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for key in ("extractive_answers", "extractive_segments"):
+        for entry in data.get(key) or []:
+            text = _strip_markup(str(entry.get("content", "")))
+            if text and text not in seen:
+                seen.add(text)
+                candidates.append((text, str(entry.get("pageNumber", "") or "")))
+    if not candidates:
+        snippets = data.get("snippets") or []
+        if snippets and snippets[0].get("snippet_status", "SUCCESS") == "SUCCESS":
+            text = _strip_markup(str(snippets[0].get("snippet", "")))
+            if text:
+                candidates.append((text, ""))
+    return candidates
+
+
 def parse_search_response(question: str, payload: dict[str, Any]) -> GuidanceResult:
     """Turn the raw JSON response into a small :class:`GuidanceResult`.
 
-    Priority per document: extractive answer (most precise), then extractive
-    segment, then snippet. Only the first passage per document is kept so a
-    single long PDF cannot crowd out the others.
+    Passages are picked **round-robin across documents**: first the best
+    passage of every document, then the second-best, and so on, up to
+    ``_MAX_PASSAGES``. With several PDFs indexed this keeps one long PDF from
+    crowding out the others; with a single PDF it still returns up to three
+    passages from it (answer + segments), which matters for a small corpus.
     """
 
-    passages: list[GuidancePassage] = []
+    per_document: list[tuple[str, str, list[tuple[str, str]]]] = []
     for item in payload.get("results", []) or []:
         doc = item.get("document", {}) or {}
         data = doc.get("derivedStructData", {}) or {}
-        title = str(data.get("title") or doc.get("id") or "FEMA NFIP document")
-        link = str(data.get("link") or "")
-        text, page = "", ""
-        for key in ("extractive_answers", "extractive_segments"):
-            entries = data.get(key) or []
-            if entries:
-                text = str(entries[0].get("content", ""))
-                page = str(entries[0].get("pageNumber", "") or "")
-                break
-        if not text:
-            snippets = data.get("snippets") or []
-            if snippets and snippets[0].get("snippet_status", "SUCCESS") == "SUCCESS":
-                text = str(snippets[0].get("snippet", ""))
-        text = _strip_markup(text)
-        if not text:
-            continue
-        passages.append(GuidancePassage(title=title, text=text[:_MAX_PASSAGE_CHARS], page=page, source_uri=link))
-        if len(passages) >= _MAX_PASSAGES:
-            break
+        candidates = _document_candidates(data)
+        if candidates:
+            title = str(data.get("title") or doc.get("id") or "FEMA NFIP document")
+            per_document.append((title, str(data.get("link") or ""), candidates))
+
+    passages: list[GuidancePassage] = []
+    rank = 0
+    while len(passages) < _MAX_PASSAGES and any(rank < len(c) for _, _, c in per_document):
+        for title, link, candidates in per_document:
+            if rank < len(candidates) and len(passages) < _MAX_PASSAGES:
+                text, page = candidates[rank]
+                passages.append(GuidancePassage(title=title, text=text[:_MAX_PASSAGE_CHARS], page=page, source_uri=link))
+        rank += 1
 
     if not passages:
         return GuidanceResult(found=False, question=question, message="No matching FEMA guidance was found.")

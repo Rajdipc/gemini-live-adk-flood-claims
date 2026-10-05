@@ -432,7 +432,7 @@ bash deploy/03b_vertex_ai_search.sh                                 # data store
 sed -i 's/^CLAIMDESK_ENABLE_GUIDANCE_SEARCH=.*/CLAIMDESK_ENABLE_GUIDANCE_SEARCH=true/' .env
 source deploy/00_variables.sh
 ```
-- If fema.gov returns 403 for a PDF, download it in your browser from `grounding/fema_documents.json`, upload it to `~/gemini-live-adk-flood-claims/grounding/raw/`, and re-run the first command.
+- The SFIP Dwelling Form downloads automatically from govinfo.gov, and **grounding works with it alone**. fema.gov usually returns 403 for the other PDFs (reported as *optional, not present*). To add them later, download them in your browser (pages listed in `grounding/fema_documents.json`), put them in `~/gemini-live-adk-flood-claims/grounding/raw/`, and re-run the first two commands. No redeploy is needed. What each document adds: [grounding.md](docs/grounding.md#running-with-only-the-sfip-dwelling-form).
 - 03b **waits** for each long-running operation (the import can take 5–45 minutes) and prints success and failure counts. It **exits with an error** if the import fails or nothing gets indexed. It's safe to re-run. For longer waits, set `IMPORT_TIMEOUT_S` / `INDEX_TIMEOUT_S`.
 
 **8. Pipeline evals, before and after the skill.** Details: [RUNBOOK Phase 8](RUNBOOK.md#phase-8-pipeline-evals-before-and-after-the-skill).
@@ -582,18 +582,21 @@ Each row gives the mode, what to say, what Maya should do, and the expected card
 | **E-07** | ⌨️ | Loss date `next Friday` | Ask to confirm; a loss can't be in the future | — |
 | **E-22** | — | DevTools → Network → Offline for 10 s | A *reconnecting* notice with *Try again*; the panel keeps everything | — |
 | **E-26** | 📹 | Camera on and talking for 5+ minutes | The call continues; `Reconnecting…` → `Live` at most briefly | No *model unavailable* notice |
-| **G-01** | ⌨️ | `What does flood insurance generally not cover in a basement?` | Activity line *"Checking FEMA guidance…"*; limited basement coverage explained in general terms; attributed to FEMA; the adjuster applies your policy | — |
-| **G-02** | 🎙️ | *"How long do I have to send in the proof of loss?"* | Generally **60 days** from the loss, unless FEMA extends it | — |
+| **G-01** | ⌨️ | `What does flood insurance generally not cover in a basement?` | Activity line *"Checking FEMA guidance…"*; limited basement coverage explained in general terms; attributed to FEMA when a passage fits; the adjuster applies your policy | — |
+| **G-02** | 🎙️ | *"How long do I have to send in the proof of loss?"* | Generally **60 days** from the loss, unless FEMA extends it; **attributed to FEMA** (the definitive grounding check) | No attribution |
 | **G-03** | ⌨️ | `What exactly counts as a flood?` | Two or more acres or two or more properties; overflow, runoff, mudflow | — |
 | **G-04** | 🎙️ | *"Will the flood policy pay for my hotel while the house is being fixed?"* | NFIP policies **generally do not** pay living expenses; the adjuster explains | No firm denial for *this* claim |
 | **G-08** | ⌨️ | Mid-claim: `So since it's a flood, you'll pay for everything, right?` | FEMA guidance is general; the adjuster decides | ⚠️ Any promise = release blocker |
+
+> [!NOTE]
+> With only the SFIP Dwelling Form indexed (the usual set-up), G-02 gets an exact cited passage. For G-01, G-03 and G-04, the passages are often loosely related, so Maya may answer from her skill knowledge without a FEMA citation. That's a pass if the answer is correct and makes no promise. Details: [post_deployment_tests.md §9](docs/post_deployment_tests.md#9-level-8-knowledge-and-grounding-8-tests-20-min).
 
 **Grounding logs (optional):**
 ```bash
 gcloud logging read 'resource.type="cloud_run_revision" AND jsonPayload.tool="lookup_flood_guidance"' \
   --limit=10 --format='value(timestamp,jsonPayload.message,jsonPayload.found,jsonPayload.latency_ms)'
 ```
-Expect `Guidance search completed` with `found=True`.
+Expect `Guidance search completed`, mostly with `found=True`. `found=False` is normal for off-topic or "what should I keep?" questions.
 
 **Where the data landed (optional):**
 ```bash

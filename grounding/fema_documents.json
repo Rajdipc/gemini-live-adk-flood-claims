@@ -1,21 +1,21 @@
 {
-  "_comment": "FEMA NFIP documents indexed by Vertex AI Search for grounding. All are US Government works published by FEMA (public domain). 'url' is a direct PDF link when one is known; FEMA occasionally moves files, so 'landing_page' is where to find the current edition by hand. 'file' is the name used in grounding/raw/ and in gs://BUCKET/grounding/fema/.",
+  "_comment": "FEMA NFIP documents indexed by Vertex AI Search for grounding. All are US Government works published by FEMA (public domain). 'url' is a direct PDF link when one is known; FEMA occasionally moves files, so 'landing_page' is where to find the current edition by hand. 'file' is the name used in grounding/raw/ and in gs://BUCKET/grounding/fema/. fema.gov and floodsmart.gov block scripted downloads (403 bot protection), so where possible 'url' points at the same official text on govinfo.gov (U.S. Government Publishing Office).",
   "documents": [
     {
       "file": "sfip_dwelling_form.pdf",
       "title": "Standard Flood Insurance Policy - Dwelling Form (F-122)",
-      "why": "The policy wording itself: flood definition, what is covered, basement limits, exclusions, duties after a loss, proof of loss.",
-      "url": "https://www.fema.gov/sites/default/files/documents/fema_F-122-Dwelling-SFIP_2021.pdf",
+      "why": "The policy wording itself: flood definition, what is covered, basement limits, exclusions, duties after a loss, proof of loss. Fetched from govinfo.gov (44 CFR Part 61, Appendix A(1) - the official Dwelling Form text); fema.gov returns 403 to scripted downloads.",
+      "url": "https://www.govinfo.gov/content/pkg/CFR-2024-title44-vol1/pdf/CFR-2024-title44-vol1-part61-appA1.pdf",
       "landing_page": "https://www.fema.gov/flood-insurance/find-form/underwriting",
       "required": true
     },
     {
       "file": "nfip_claims_handbook.pdf",
       "title": "NFIP Claims Handbook (for policyholders)",
-      "why": "Plain-language steps after a flood: documenting damage, what to keep, proof of loss, appeals.",
+      "why": "Plain-language steps after a flood: documenting damage, what to keep, proof of loss, appeals. Strongly recommended (it answers 'what should I keep / photograph?' questions the policy form does not), but not required: fema.gov blocks scripted downloads, so it usually has to be downloaded by hand, and grounding already works with the SFIP alone.",
       "url": "",
       "landing_page": "https://www.fema.gov/flood-insurance/playbook/flood-insurance-manuals-handbooks",
-      "required": true
+      "required": false
     },
     {
       "file": "nfip_claims_manual.pdf",

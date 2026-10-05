@@ -20,7 +20,7 @@ This page describes every BigQuery table in the `claimdesk` dataset (location **
 > [!NOTE]
 > **Flood-only scope.** NFIP insures *flood*, meaning rising surface water from a river, the sea, or accumulated rain. It does **not** cover burst pipes, sump-pump failure, or sewer/drain backup; those are homeowners-policy losses. FEMA's own non-payment codes show this (`02` Seepage, `03` Backup drains, `16` Wind damage). ClaimDesk v2 therefore treats only residential flood as in scope and sends everything else to human triage. The registry, benchmarks and eval seeds keep only **residential** occupancy types (`1, 2, 3, 11, 12, 13, 14, 15, 16`).
 
-**States loaded:** CO, TX, FL, LA, NC (setting `CLAIMDESK_SUPPORTED_STATES`; it drives both the FEMA download and the NOAA/ZIP copy). **Policies:** effective date 2025-01-01 or later, sampled up to `--max-per-state` (default 50,000) per state. **Claims:** date of loss 2015-01-01 or later, all rows.
+**States loaded:** CO, TX, FL, LA, NC (setting `CLAIMDESK_SUPPORTED_STATES`; it drives both the FEMA download and the NOAA/ZIP copy). **Policies:** effective date within the last 365 days (rolling default of `--policies-since`, so most are still active), sampled up to `--max-per-state` (default 50,000) per state. **Claims:** date of loss 2015-01-01 or later, all rows.
 
 ## How the tables relate
 

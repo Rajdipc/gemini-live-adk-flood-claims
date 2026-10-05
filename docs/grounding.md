@@ -47,8 +47,8 @@ Edit a file under `skills/nfip-flood-intake/`, run the offline tests (one checks
 ### What "grounding" means here
 When a claimant asks a **general** question, such as *"Does flood insurance cover my finished basement?"* or *"When is the proof of loss due?"*, Maya calls the `lookup_flood_guidance` tool. The flow:
 1. The tool searches a Vertex AI Search index of FEMA's published NFIP documents.
-2. It returns up to 3 short passages with the document title and page.
-3. Maya answers from those passages, says it's FEMA's general guidance, and adds that the adjuster applies the actual policy.
+2. It returns up to 3 short passages with the document title and page: per document, one *extractive answer* (a precise sentence) plus up to two *extractive segments* (longer paragraphs), picked round-robin across documents so one long PDF can't crowd out the others.
+3. Maya checks whether a passage **directly answers** the question. If one does, she answers from it, says it's FEMA's general guidance, and adds that the adjuster applies the actual policy. Search always returns its *closest* passages, even when none really fits; in that case (or when `found` is `false`) she gives a short general answer from her built-in flood knowledge (the Agent Skill, section 1) **without** citing FEMA documents.
 
 She never turns guidance into a promise about the claim.
 
@@ -77,10 +77,22 @@ Listed in [`grounding/fema_documents.json`](../grounding/fema_documents.json). A
 
 | File | Document | Required |
 |---|---|---|
-| `sfip_dwelling_form.pdf` | Standard Flood Insurance Policy, Dwelling Form (F-122) | Yes |
-| `nfip_claims_handbook.pdf` | NFIP Claims Handbook | Yes |
+| `sfip_dwelling_form.pdf` | Standard Flood Insurance Policy, Dwelling Form (F-122) | **Yes** (downloads automatically from govinfo.gov) |
+| `nfip_claims_handbook.pdf` | NFIP Claims Handbook | Recommended (download by hand) |
 | `nfip_claims_manual.pdf` | NFIP Claims Manual | Optional |
 | `nfip_flood_insurance_manual.pdf` | NFIP Flood Insurance Manual | Optional |
+
+#### Running with only the SFIP Dwelling Form
+This is the usual state right after set-up, because fema.gov blocks scripted downloads of the other three. It's a working configuration: `fetch_fema_docs` reports the others as *optional, not present* and exits 0. What to expect (checked against a live engine):
+
+| Question type | With the SFIP only |
+|---|---|
+| Proof of loss deadline, duties after a loss, inventory | **Strong**: exact policy wording with page (e.g. *"Within 60 days after the loss, send us a proof of loss"*, page 11) |
+| Basement limits, flood definition, exclusions | **Partial**: the right section is usually among the 3 passages, next to less relevant ones |
+| Hotel / living expenses, cars | **Weak**: passages are mostly unrelated, so Maya answers from her skill knowledge without citing FEMA |
+| "What should I keep / photograph?" | Usually `found: false` (that's Claims Handbook material); Maya answers from her skill knowledge |
+
+Adding the Claims Handbook mostly improves the last two rows. To add documents later: download them, put them in `grounding/raw/`, and run `uv run --no-sync python -m grounding.fetch_fema_docs --upload && bash deploy/03b_vertex_ai_search.sh`. No redeploy is needed.
 
 ### Set-up, step by step (Cloud Shell)
 
@@ -91,7 +103,7 @@ Before you start, finish RUNBOOK Phases 1–6: APIs (including `discoveryengine`
 cd ~/gemini-live-adk-flood-claims && source deploy/00_variables.sh
 uv run --no-sync python -m grounding.fetch_fema_docs --upload
 ```
-fema.gov often blocks scripted downloads with **403**. The script then prints `[MISSING]`, the FEMA page to visit and the file name to use. For each missing file:
+The SFIP Dwelling Form is fetched from **govinfo.gov** (44 CFR Part 61, Appendix A(1): the same official text), because fema.gov and floodsmart.gov block scripted downloads, even from Google Cloud IPs. For the other documents, fema.gov often returns **403**. The script then prints `[MISSING]`, the FEMA page to visit and the file name to use. For each missing file:
 1. Open the FEMA page in your browser and download the PDF.
 2. In Cloud Shell: **⋮ → Upload**, then move the file with `mv ~/<downloaded>.pdf ~/gemini-live-adk-flood-claims/grounding/raw/<file name from the list>`.
 3. Re-run `uv run --no-sync python -m grounding.fetch_fema_docs --upload`.

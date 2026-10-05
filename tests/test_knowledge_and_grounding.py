@@ -178,6 +178,51 @@ def test_parse_prefers_extractive_and_strips_markup():
     assert not gs.parse_search_response("x", {}).found
 
 
+def test_single_document_returns_answer_and_segments():
+    # Only one PDF indexed (e.g. just the SFIP form): the short answer can be
+    # off-topic while a segment hits the right section, so keep both.
+    payload = {
+        "results": [
+            {
+                "document": {
+                    "id": "sfip",
+                    "derivedStructData": {
+                        "title": "sfip_dwelling_form",
+                        "extractive_answers": [{"content": "Artwork, photographs, collectibles", "pageNumber": "4"}],
+                        "extractive_segments": [
+                            {"content": "Drywall for walls and ceilings in a basement", "pageNumber": "4"},
+                            {"content": "Artwork, photographs, collectibles", "pageNumber": "4"},  # duplicate
+                            {"content": "III. PROPERTY INSURED", "pageNumber": "3"},
+                        ],
+                    },
+                }
+            }
+        ]
+    }
+    result = gs.parse_search_response("basement", payload)
+    assert [p.text for p in result.passages] == [
+        "Artwork, photographs, collectibles",
+        "Drywall for walls and ceilings in a basement",
+        "III. PROPERTY INSURED",
+    ]
+    assert gs.build_request_body("q")["contentSearchSpec"]["extractiveContentSpec"]["maxExtractiveSegmentCount"] == 2
+
+
+def test_passages_round_robin_across_documents():
+    def doc(name: str, n: int) -> dict:
+        segs = [{"content": f"{name}-{i}", "pageNumber": str(i)} for i in range(n)]
+        return {"document": {"id": name, "derivedStructData": {"title": name, "extractive_segments": segs}}}
+
+    result = gs.parse_search_response("q", {"results": [doc("A", 3), doc("B", 3)]})
+    # Best passage of each document first, so one long PDF cannot crowd out the other.
+    assert [p.text for p in result.passages] == ["A-0", "B-0", "A-1"]
+
+
+def test_tool_result_tells_model_to_judge_relevance():
+    how = gs.GuidanceResult(found=True, question="q").as_tool_result()["how_to_use"]
+    assert "directly answer" in how and "without citing FEMA" in how and "Never promise" in how
+
+
 def test_search_success_and_cache(grounding_env):
     grounding_env()
     session = FakeSession(FakeResponse(200, SAMPLE_RESPONSE))
