@@ -4,7 +4,7 @@
 
 [![Google ADK](https://img.shields.io/badge/Google_ADK-2.x_Workflow_%2B_Agent_Skill-4285F4?logo=googlecloud&logoColor=white)](https://google.github.io/adk-docs/)
 [![Gemini Live API](https://img.shields.io/badge/Gemini_Live_API-voice_%2B_vision-8E75B2?logo=googlegemini&logoColor=white)](https://cloud.google.com/vertex-ai/generative-ai/docs/live-api)
-[![Vertex AI Search](https://img.shields.io/badge/Vertex_AI_Search-FEMA_grounding-34A853?logo=googlecloud&logoColor=white)](https://cloud.google.com/generative-ai-app-builder/docs/introduction)
+[![Agent Search](https://img.shields.io/badge/Vertex_AI_Search-FEMA_grounding-34A853?logo=googlecloud&logoColor=white)](https://cloud.google.com/generative-ai-app-builder/docs/introduction)
 [![BigQuery](https://img.shields.io/badge/BigQuery-OpenFEMA_v3_%2B_NOAA-669DF6?logo=googlebigquery&logoColor=white)](https://www.fema.gov/about/openfema/data-sets)
 [![Cloud Run + IAP](https://img.shields.io/badge/Cloud_Run-private_behind_IAP-EA4335?logo=googlecloud&logoColor=white)](https://cloud.google.com/run/docs/securing/identity-aware-proxy-cloud-run)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
