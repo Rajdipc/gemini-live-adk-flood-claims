@@ -1,0 +1,301 @@
+<!doctype html>
+<!--
+  Policyholder "claim call" page for the fictitious insurer (brand from config).
+
+  Plain HTML + CSS + one script, no build step and no JS frameworks. FastAPI
+  serves this folder (webapp/static). The page only talks to its own origin:
+    * GET  /api/config          brand name, agent name, claims phone, supported
+                                states and limits (env vars -> settings.py)
+    * REST /api/intakes/...     start/resume a claim, upload photos, packet
+    * WS   /ws/live             the live voice + camera call (Gemini Live)
+  On Cloud Run the page sits behind Identity-Aware Proxy (IAP), so the Google
+  sign-in cookie rides along automatically; no tokens are handled here.
+
+  Brand text below is only a neutral fallback: claim.js replaces anything
+  marked data-brand-name / data-agent-name / data-states once /api/config loads.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Flood claim call</title>
+    <meta
+      name="description"
+      content="Report flood damage to your home by talking with a claims agent. Your claim summary fills in as you talk; download your claim packet at the end."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#101b22" media="(prefers-color-scheme: dark)" />
+    <!-- Apply the saved / system theme before first paint (avoids a flash). -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("claimTheme");
+          var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.dataset.theme = saved || (dark ? "dark" : "light");
+        } catch (e) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/claim.css?v=3" />
+  </head>
+  <body data-tab="call">
+    <a class="skip-link" id="skipToClaim" href="#claimPanel">Skip to your claim summary</a>
+
+    <div class="demo-strip" role="note" id="demoStrip">
+      <strong>Demo:</strong> flood-only scope, generated policy identities on real FEMA NFIP records
+      <span class="demo-strip-extra">· fictitious company · not endorsed by FEMA · no coverage decisions</span>
+    </div>
+
+    <header class="site-header" id="siteHeader">
+      <div class="brand">
+        <!-- Brand mark: a roofline over two gentle waves (a home kept above water).
+             Drawn for this demo; not any real company's logo. -->
+        <svg class="brand-mark" id="brandMark" viewBox="0 0 40 40" role="img" aria-labelledby="brandMarkTitle">
+          <title id="brandMarkTitle">Brand mark</title>
+          <rect x="1" y="1" width="38" height="38" rx="12" class="mark-tile" />
+          <path d="M10 19.5 20 11l10 8.5" class="mark-roof" />
+          <path d="M9 25.5c2.2 0 2.2-1.6 4.4-1.6s2.2 1.6 4.4 1.6 2.2-1.6 4.4-1.6 2.2 1.6 4.4 1.6 2.2-1.6 4.4-1.6" class="mark-wave" />
+          <path d="M11.5 30.5c1.9 0 1.9-1.3 3.8-1.3s1.9 1.3 3.8 1.3 1.9-1.3 3.8-1.3 1.9 1.3 3.8 1.3" class="mark-wave soft" />
+        </svg>
+        <div class="brand-text">
+          <span class="brand-name" id="brandName" data-brand-name>Flood claims</span>
+          <span class="brand-tagline" id="brandTagline" hidden></span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <p class="claims-line" id="claimsLine" hidden>
+          <span class="claims-line-label">Claims line</span>
+          <a id="claimsPhone" href="#">—</a>
+        </p>
+        <span class="user-chip" id="userChip" hidden>
+          <span class="user-avatar" id="userAvatar" aria-hidden="true"></span>
+          <span class="sr-only">Signed in as</span>
+          <span class="user-name" id="userName"></span>
+        </span>
+        <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch to dark theme">
+          <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg>
+          <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
+          </svg>
+        </button>
+        <button class="ghost-btn" id="newClaimBtn" type="button">New claim</button>
+      </div>
+    </header>
+
+    <main class="layout" id="app">
+      <!-- ===================== The call ===================== -->
+      <section class="call-stage" id="callStage" aria-labelledby="callHeading">
+        <div class="stage-top">
+          <div>
+            <h1 class="stage-heading" id="callHeading">Report flood damage</h1>
+            <p class="stage-sub">
+              Talk with <span data-agent-name>your claims agent</span>. We'll build your claim as you go.
+            </p>
+          </div>
+          <div class="stage-meta">
+            <span class="status-chip neutral" id="callStatus">Connecting</span>
+            <span class="call-clock" id="callClock" hidden aria-label="Call time">0:00</span>
+          </div>
+        </div>
+
+        <div class="orb-zone" id="orbZone">
+          <div class="orb" id="orb" data-state="idle">
+            <canvas class="orb-canvas" id="orbCanvas" aria-hidden="true"></canvas>
+            <div class="orb-core" aria-hidden="true">
+              <svg class="orb-icon" viewBox="0 0 24 24">
+                <rect x="9" y="3" width="6" height="11" rx="3" />
+                <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" />
+              </svg>
+            </div>
+          </div>
+          <p class="orb-label" id="orbLabel">Tap “Start claim call” when you're ready</p>
+
+          <figure class="lens-stage" id="lensStage" hidden>
+            <video id="lensPreview" autoplay muted playsinline aria-label="Your camera preview"></video>
+            <figcaption>
+              <span class="lens-live"><span class="lens-dot" aria-hidden="true"></span><span data-agent-name>Your agent</span> can see this</span>
+              <button class="capture-btn" id="captureBtn" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="3.5" class="fill" /></svg>
+                Capture evidence
+              </button>
+            </figcaption>
+            <canvas id="frameGrabber" hidden></canvas>
+          </figure>
+        </div>
+
+        <div class="call-controls" role="group" aria-label="Call controls">
+          <button class="call-btn" id="callBtn" type="button" aria-pressed="false">
+            <svg class="icon icon-phone" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6.6 3.5h2.6l1.4 4-2 1.3a11 11 0 0 0 6.6 6.6l1.3-2 4 1.4v2.6a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2Z" />
+            </svg>
+            <span class="btn-label">Start claim call</span>
+          </button>
+          <button class="tool-btn" id="lensBtn" type="button" aria-pressed="false">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5" /><path d="m15.5 10.5 6-3.5v10l-6-3.5" /></svg>
+            <span class="btn-label">Show camera</span>
+          </button>
+          <button class="tool-btn" id="uploadBtn" type="button">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3" /><circle cx="9" cy="10" r="1.8" /><path d="m4 18 5.5-5 4 3.5 2.5-2 4 3.5" /></svg>
+            <span class="btn-label">Add photo</span>
+          </button>
+          <input id="photoPicker" type="file" accept="image/*" hidden />
+        </div>
+
+        <div class="notice" id="callNotice" role="alert" hidden>
+          <div class="notice-text">
+            <p class="notice-title" id="noticeTitle"></p>
+            <p class="notice-body" id="noticeBody"></p>
+          </div>
+          <div class="notice-actions">
+            <button class="solid-btn small" id="noticeAction" type="button" hidden>Try again</button>
+            <button class="icon-btn small" id="noticeDismiss" type="button" aria-label="Dismiss message">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <section class="captions-card" aria-labelledby="captionsHeading">
+          <div class="captions-head">
+            <h2 class="section-title" id="captionsHeading">Live captions</h2>
+            <span class="captions-hint">Speak naturally, or type below</span>
+          </div>
+          <ol class="captions" id="captions" tabindex="0" aria-label="Conversation so far"></ol>
+          <!-- Screen readers hear only NEW finished turns (the list above re-renders). -->
+          <div class="sr-only" id="srCaptions" role="log" aria-live="polite" aria-relevant="additions"></div>
+          <form class="type-form" id="typeForm" autocomplete="off">
+            <label class="sr-only" for="typeInput">Type a message</label>
+            <input id="typeInput" type="text" maxlength="2000" placeholder="Prefer to type? Write here and press Enter" />
+            <button class="send-btn" id="sendBtn" type="submit" aria-label="Send message">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+          </form>
+        </section>
+      </section>
+
+      <!-- ===================== The claim, as we build it ===================== -->
+      <aside class="claim-panel" id="claimPanel" aria-labelledby="panelTitle" tabindex="-1">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Your claim, as we build it</p>
+            <h2 class="panel-title" id="panelTitle">Claim summary</h2>
+          </div>
+          <span class="sync-state" id="syncState" hidden aria-live="polite"></span>
+        </div>
+
+        <div class="progress-block">
+          <div class="progress-row">
+            <span class="progress-label">Details collected</span>
+            <span class="progress-value" id="progressValue">0%</span>
+          </div>
+          <div class="progress-track" id="progressBar" role="progressbar" aria-label="Details collected" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span class="progress-fill" id="progressFill"></span>
+          </div>
+          <ol class="stepper" id="stepper" aria-label="Claim steps"></ol>
+        </div>
+
+        <div class="next-card tone-neutral" id="nextStep" aria-live="polite">
+          <p class="next-eyebrow">What happens next</p>
+          <p class="next-title" id="nextTitle">Start whenever you're ready</p>
+          <p class="next-body" id="nextBody"></p>
+        </div>
+
+        <section class="panel-section" aria-labelledby="factsHeading">
+          <h3 class="section-title" id="factsHeading">Key facts</h3>
+          <dl class="fact-list" id="factList"></dl>
+        </section>
+
+        <section class="panel-section" aria-labelledby="docsHeading">
+          <h3 class="section-title" id="docsHeading">Documents</h3>
+          <ul class="doc-list" id="docList"></ul>
+        </section>
+
+        <section class="panel-section" aria-labelledby="evidenceHeading">
+          <div class="section-row">
+            <h3 class="section-title" id="evidenceHeading">Photos</h3>
+            <span class="count-chip" id="evidenceCount">0</span>
+          </div>
+          <ul class="evidence-grid" id="evidenceGrid"></ul>
+          <figure class="sketch-card" id="sketchCard" hidden>
+            <img id="sketchImage" alt="Hand-drawn illustration of the flooded space, based on what you described" />
+            <figcaption id="sketchCaption"></figcaption>
+          </figure>
+        </section>
+
+        <div class="packet-actions">
+          <a class="solid-btn wide" id="downloadBtn" href="#" download aria-disabled="true">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" /></svg>
+            Download claim packet
+          </a>
+          <button class="ghost-btn wide" id="previewPacketBtn" type="button">Preview packet</button>
+          <p class="packet-note">
+            A packet is a summary for your records. An adjuster reviews every claim; nothing here is a coverage decision.
+          </p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="site-footer" id="siteFooter">
+      <p id="disclaimer">
+        <strong>Demo: flood-only scope, generated policy identities on real FEMA NFIP records.</strong>
+        <span data-brand-name>This insurer</span> is a fictitious company created for this demo. Flood claims only, for homes in
+        <span data-states>supported states</span>. Not affiliated with or endorsed by FEMA. No coverage, payment or liability
+        decisions are made here.
+      </p>
+    </footer>
+
+    <nav class="tabbar" id="tabbar" role="tablist" aria-label="Sections">
+      <button id="tabCall" role="tab" type="button" aria-selected="true" aria-controls="callStage">Call</button>
+      <button id="tabClaim" role="tab" type="button" aria-selected="false" aria-controls="claimPanel">
+        Your claim <span class="tab-badge" id="tabClaimBadge">0%</span>
+      </button>
+    </nav>
+
+    <p class="sr-only" id="srStatus" role="status"></p>
+
+    <!-- Photo description before upload -->
+    <dialog class="sheet" id="photoDialog" aria-labelledby="photoDialogTitle">
+      <form id="photoForm" method="dialog">
+        <h2 class="sheet-title" id="photoDialogTitle">Add this photo to your claim?</h2>
+        <img class="sheet-photo" id="photoPreview" alt="The photo you are about to add" />
+        <label class="field-label" for="photoNote">What does it show? <span class="optional">(optional)</span></label>
+        <textarea id="photoNote" rows="2" maxlength="600" placeholder="For example: water line on the living room wall"></textarea>
+        <p class="sheet-hint">An automatic check describes the image honestly. If it can't confirm what you wrote, an adjuster will take a look.</p>
+        <div class="sheet-actions">
+          <button class="ghost-btn" id="photoCancelBtn" type="button">Cancel</button>
+          <button class="solid-btn" id="photoSaveBtn" type="submit">Add photo</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Evidence viewer -->
+    <dialog class="sheet wide" id="viewerDialog" aria-labelledby="viewerCaption">
+      <img class="viewer-image" id="viewerImage" alt="" />
+      <p class="viewer-caption" id="viewerCaption"></p>
+      <div class="sheet-actions">
+        <button class="solid-btn" id="viewerCloseBtn" type="button">Close</button>
+      </div>
+    </dialog>
+
+    <!-- Packet preview -->
+    <dialog class="sheet wide" id="packetDialog" aria-labelledby="packetDialogTitle">
+      <h2 class="sheet-title" id="packetDialogTitle">Claim packet preview</h2>
+      <pre class="packet-text" id="packetText" tabindex="0"></pre>
+      <div class="sheet-actions">
+        <button class="ghost-btn" id="packetCloseBtn" type="button">Close</button>
+        <a class="solid-btn" id="packetDownloadBtn" href="#" download>Download ZIP</a>
+      </div>
+    </dialog>
+
+    <script src="/static/claim.js?v=3" defer></script>
+  </body>
+</html>

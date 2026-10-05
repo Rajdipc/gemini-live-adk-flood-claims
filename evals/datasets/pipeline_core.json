@@ -1,0 +1,946 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "core_01_surface_flood_ready_co",
+      "description": "Creek overflow into a Boulder, CO home; all facts given and the three required photos were captured by the server -> ready_for_adjuster.",
+      "tags": [
+        "surface_flood",
+        "complete",
+        "server_evidence",
+        "CO"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-07-16T10:00",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-07-16T10:00\n\nConversation (source of truth; do not invent facts):\nAGENT t1: Thanks for calling the flood claim desk. Who am I speaking with?\nCLAIMANT t2: This is Maria Gonzalez.\nAGENT t3: Thank you, Maria. Do you have your flood policy number?\nCLAIMANT t4: Yes, it's FLD-CO-4H7K2P.\nAGENT t5: What happened?\nCLAIMANT t6: On Monday, July 14th, Boulder Creek came over its banks after the storm and about six inches of water came in through the front door into our living room and kitchen.\nAGENT t7: I'm sorry. What's the address?\nCLAIMANT t8: 2240 Walnut Street, Boulder, Colorado 80302.\nAGENT t9: Could you show me the damage on camera?\nCAMERA t10: Living room wall with a muddy water line about six inches above the floor; soaked carpet and a swollen wooden bookcase.\nCLAIMANT t11: And this is the list of everything we lost that I wrote up last night.\nCAMERA t12: A handwritten list of damaged items: sofa, rug, bookcase, TV stand, kitchen chairs.\nAGENT t13: Do you have a rough estimate of the damage?\nCLAIMANT t14: The contractor said about $23,400 for the floors, drywall and furniture.\nAGENT t15: Is everyone safe?\nCLAIMANT t16: Yes, nobody was hurt, and the power stayed off downstairs until an electrician checked it.\nAGENT t17: What's the best way to reach you?\nCLAIMANT t18: My cell, 720-555-0142."
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": [
+          {
+            "id": "cap-core01-a",
+            "document_types": [
+              "damage_photo",
+              "water_line_photo"
+            ]
+          },
+          {
+            "id": "cap-core01-b",
+            "document_types": [
+              "contents_inventory"
+            ]
+          }
+        ]
+      },
+      "world": {
+        "policy_issues": [],
+        "benchmark": {
+          "available": true,
+          "state": "CO",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 3100,
+          "damage_p50_usd": 15000,
+          "damage_p90_usd": 60000,
+          "damage_p95_usd": 95000,
+          "report_lag_p95_days": 60
+        },
+        "weather": {
+          "checked": true,
+          "events_found": 2,
+          "event_types": [
+            "Flash Flood",
+            "Heavy Rain"
+          ],
+          "nearest_event_km": 8.0,
+          "note": "2 NOAA flood/rain events within 50 km and 3 days (eval stub)."
+        }
+      },
+      "expected": {
+        "claim_type": "home_flood",
+        "water_source": "surface_flood",
+        "routing": "ready_for_adjuster",
+        "facts": {
+          "policyholder_name": "Maria Gonzalez",
+          "policy_number": "FLD-CO-4H7K2P",
+          "date_of_loss": "2025-07-14",
+          "loss_address_or_city": "Boulder",
+          "loss_state": "CO",
+          "loss_zip_code": "80302",
+          "water_depth_inches": 6,
+          "estimated_loss_usd": 23400,
+          "contact_method": "720-555-0142"
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [
+            {
+              "document_type": "damage_photo",
+              "status": "available"
+            },
+            {
+              "document_type": "water_line_photo",
+              "status": "available"
+            },
+            {
+              "document_type": "contents_inventory",
+              "status": "available"
+            }
+          ],
+          "safety_facts": [
+            {
+              "category": "injury",
+              "status": "absent",
+              "description": "Nobody was hurt"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "Maria Gonzalez",
+          "policy_number": "FLD-CO-4H7K2P",
+          "contact_method": "720-555-0142",
+          "date_of_loss": "2025-07-14",
+          "loss_address_or_city": "2240 Walnut Street, Boulder, CO",
+          "loss_state": "CO",
+          "loss_zip_code": "80302",
+          "loss_description": "Boulder Creek overflowed and about six inches of water entered the living room and kitchen.",
+          "water_entry_description": "creek overflow through the front door",
+          "water_depth_inches": 6,
+          "estimated_loss_usd": 23400,
+          "summary": "Boulder Creek overflowed after a storm and six inches of water entered the home. Nobody was hurt."
+        },
+        "classification": {
+          "claim_type": "home_flood",
+          "severity": "medium",
+          "severity_rationale": "creek overflow, six inches inside",
+          "water_source": "surface_flood",
+          "water_source_rationale": "creek overflow, six inches inside"
+        }
+      }
+    },
+    {
+      "eval_case_id": "core_02_sump_pump_failure_co",
+      "description": "Basement filled because the sump pump burned out; yard and street were dry -> internal_water / human_triage.",
+      "tags": [
+        "sump_pump_failure",
+        "internal_water",
+        "CO"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-06-11T09:30",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-06-11T09:30\n\nConversation (source of truth; do not invent facts):\nAGENT t1: Flood claim desk, how can I help?\nCLAIMANT t2: Hi, I'm David Chen, policy FLD-CO-8M3Q5R. Our basement flooded on June 9th.\nAGENT t3: I'm sorry to hear that. Where did the water come from?\nCLAIMANT t4: It rained hard that night but the yard and the street were fine. The sump pump motor burned out and the pit overflowed, so about four inches of water spread across the finished basement.\nAGENT t5: What's the property address?\nCLAIMANT t6: 418 Mathews Street, Fort Collins, Colorado 80524.\nAGENT t7: Any idea of the cost?\nCLAIMANT t8: Around $9,800 for carpet, drywall and a couch.\nAGENT t9: Is anyone hurt or is anything unsafe?\nCLAIMANT t10: No, everyone is fine.\nAGENT t11: Do you have photos?\nCLAIMANT t12: Yes, I took photos of the basement on my phone.\nAGENT t13: Best number for the adjuster?\nCLAIMANT t14: 970-555-0187."
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": []
+      },
+      "world": {
+        "policy_issues": [],
+        "benchmark": {
+          "available": true,
+          "state": "CO",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 3100,
+          "damage_p50_usd": 15000,
+          "damage_p90_usd": 60000,
+          "damage_p95_usd": 95000,
+          "report_lag_p95_days": 60
+        },
+        "weather": null
+      },
+      "expected": {
+        "claim_type": "internal_water",
+        "water_source": "sump_pump_failure",
+        "routing": "human_triage",
+        "facts": {
+          "policyholder_name": "David Chen",
+          "policy_number": "FLD-CO-8M3Q5R",
+          "date_of_loss": "2025-06-09",
+          "loss_address_or_city": "Fort Collins",
+          "loss_state": "CO",
+          "loss_zip_code": "80524",
+          "water_depth_inches": 4,
+          "estimated_loss_usd": 9800
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [
+            {
+              "document_type": "damage_photo",
+              "status": "available"
+            }
+          ],
+          "safety_facts": [
+            {
+              "category": "injury",
+              "status": "absent",
+              "description": "Nobody was hurt"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "David Chen",
+          "policy_number": "FLD-CO-8M3Q5R",
+          "contact_method": "970-555-0187",
+          "date_of_loss": "2025-06-09",
+          "loss_address_or_city": "418 Mathews Street, Fort Collins, CO",
+          "loss_state": "CO",
+          "loss_zip_code": "80524",
+          "loss_description": "The sump pump motor burned out and the pit overflowed, spreading four inches of water across the finished basement.",
+          "water_entry_description": "sump pump failure; yard and street were dry",
+          "water_depth_inches": 4,
+          "estimated_loss_usd": 9800,
+          "summary": "A failed sump pump flooded the finished basement with four inches of water. Nobody was hurt."
+        },
+        "classification": {
+          "claim_type": "internal_water",
+          "severity": "medium",
+          "severity_rationale": "sump pump motor failed; no outside flooding",
+          "water_source": "sump_pump_failure",
+          "water_source_rationale": "sump pump motor failed; no outside flooding"
+        }
+      }
+    },
+    {
+      "eval_case_id": "core_03_sewer_backup_la",
+      "description": "Sewer backed up through a floor drain and toilet during heavy rain; street not flooded -> internal_water / human_triage.",
+      "tags": [
+        "sewer_or_drain_backup",
+        "internal_water",
+        "LA"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-05-21T14:00",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-05-21T14:00\n\nConversation (source of truth; do not invent facts):\nAGENT t1: You've reached the flood claim desk. May I have your name?\nCLAIMANT t2: Andre Thibodeaux.\nAGENT t3: Thanks, Andre. What happened?\nCLAIMANT t4: During the downpour on May 19th the city sewer backed up. Dirty water came up through the floor drain in the laundry room and out of the downstairs toilet. The street itself never flooded.\nAGENT t5: How deep did it get?\nCLAIMANT t6: Maybe two inches across the laundry room and hallway.\nAGENT t7: What's the address and your policy number?\nCLAIMANT t8: 3115 Dauphine Street, New Orleans, Louisiana 70117. Policy FLD-LA-9R3T6W.\nAGENT t9: Roughly how much damage?\nCLAIMANT t10: The plumber and the flooring guy together quoted $6,500.\nAGENT t11: Is the home safe?\nCLAIMANT t12: We cleaned it up with bleach and nobody got sick or hurt.\nAGENT t13: How can we reach you?\nCLAIMANT t14: andre.thibodeaux@example.com"
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": []
+      },
+      "world": {
+        "policy_issues": [],
+        "benchmark": {
+          "available": true,
+          "state": "LA",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 180000,
+          "damage_p50_usd": 28000,
+          "damage_p90_usd": 95000,
+          "damage_p95_usd": 140000,
+          "report_lag_p95_days": 50
+        },
+        "weather": null
+      },
+      "expected": {
+        "claim_type": "internal_water",
+        "water_source": "sewer_or_drain_backup",
+        "routing": "human_triage",
+        "facts": {
+          "policyholder_name": "Andre Thibodeaux",
+          "policy_number": "FLD-LA-9R3T6W",
+          "date_of_loss": "2025-05-19",
+          "loss_address_or_city": "New Orleans",
+          "loss_state": "LA",
+          "loss_zip_code": "70117",
+          "estimated_loss_usd": 6500
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [
+            {
+              "document_type": "third_party_report",
+              "status": "available"
+            }
+          ],
+          "safety_facts": [
+            {
+              "category": "injury",
+              "status": "absent",
+              "description": "Nobody was hurt"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "Andre Thibodeaux",
+          "policy_number": "FLD-LA-9R3T6W",
+          "contact_method": "andre.thibodeaux@example.com",
+          "date_of_loss": "2025-05-19",
+          "loss_address_or_city": "3115 Dauphine Street, New Orleans, LA",
+          "loss_state": "LA",
+          "loss_zip_code": "70117",
+          "loss_description": "The city sewer backed up during heavy rain and water came up through the laundry floor drain and downstairs toilet.",
+          "water_entry_description": "sewer backup through floor drain and toilet; street did not flood",
+          "water_depth_inches": 2,
+          "estimated_loss_usd": 6500,
+          "summary": "A sewer backup during heavy rain pushed water into the laundry room and hallway. Nobody was hurt."
+        },
+        "classification": {
+          "claim_type": "internal_water",
+          "severity": "medium",
+          "severity_rationale": "water came up through drains",
+          "water_source": "sewer_or_drain_backup",
+          "water_source_rationale": "water came up through drains"
+        }
+      }
+    },
+    {
+      "eval_case_id": "core_04_internal_plumbing_fl",
+      "description": "Burst supply line under the kitchen sink while the owners were away (not NFIP flood) -> internal_water / human_triage.",
+      "tags": [
+        "internal_plumbing",
+        "internal_water",
+        "FL"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-08-05T11:15",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-08-05T11:15\n\nConversation (source of truth; do not invent facts):\nAGENT t1: Flood claim desk. What's your name, please?\nCLAIMANT t2: Priya Raman. My policy number is FLD-FL-2B7N4X.\nAGENT t3: What happened, Priya?\nCLAIMANT t4: We came back from a trip on August 3rd and the supply line under the kitchen sink had burst. There was about an inch of water through the kitchen and dining room.\nAGENT t5: Was there any flooding outside?\nCLAIMANT t6: No, it was sunny all week. It was just the pipe.\nAGENT t7: Where is the home?\nCLAIMANT t8: 907 South Rome Avenue, Tampa, Florida 33606.\nAGENT t9: Estimated cost?\nCLAIMANT t10: About $14,200 for the cabinets and flooring.\nAGENT t11: Anyone hurt?\nCLAIMANT t12: No, nobody was home.\nAGENT t13: Best contact?\nCLAIMANT t14: 813-555-0123."
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": []
+      },
+      "world": {
+        "policy_issues": [],
+        "benchmark": {
+          "available": true,
+          "state": "FL",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 120000,
+          "damage_p50_usd": 25000,
+          "damage_p90_usd": 100000,
+          "damage_p95_usd": 150000,
+          "report_lag_p95_days": 60
+        },
+        "weather": null
+      },
+      "expected": {
+        "claim_type": "internal_water",
+        "water_source": "internal_plumbing",
+        "routing": "human_triage",
+        "facts": {
+          "policyholder_name": "Priya Raman",
+          "policy_number": "FLD-FL-2B7N4X",
+          "date_of_loss": "2025-08-03",
+          "loss_address_or_city": "Tampa",
+          "loss_state": "FL",
+          "loss_zip_code": "33606",
+          "estimated_loss_usd": 14200
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [],
+          "safety_facts": [
+            {
+              "category": "injury",
+              "status": "absent",
+              "description": "Nobody was hurt"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "Priya Raman",
+          "policy_number": "FLD-FL-2B7N4X",
+          "contact_method": "813-555-0123",
+          "date_of_loss": "2025-08-03",
+          "loss_address_or_city": "907 South Rome Avenue, Tampa, FL",
+          "loss_state": "FL",
+          "loss_zip_code": "33606",
+          "loss_description": "A supply line under the kitchen sink burst while the owners were away, leaving an inch of water in the kitchen and dining room.",
+          "water_entry_description": "burst pipe under the kitchen sink; no outside flooding",
+          "water_depth_inches": 1,
+          "estimated_loss_usd": 14200,
+          "summary": "A burst kitchen supply line flooded the kitchen and dining room while the family was away. Nobody was hurt."
+        },
+        "classification": {
+          "claim_type": "internal_water",
+          "severity": "medium",
+          "severity_rationale": "burst pipe",
+          "water_source": "internal_plumbing",
+          "water_source_rationale": "burst pipe"
+        }
+      }
+    },
+    {
+      "eval_case_id": "core_05_seepage_nc",
+      "description": "Groundwater seeping through basement walls for weeks after rains, no standing water outside (FEMA non-payment code 02) -> internal_water / human_triage.",
+      "tags": [
+        "seepage",
+        "internal_water",
+        "NC"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-04-22T16:00",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-04-22T16:00\n\nConversation (source of truth; do not invent facts):\nAGENT t1: Hello, flood claim desk. Can I get your name?\nCLAIMANT t2: Keisha Brown, policy FLD-NC-6D8F3Z.\nAGENT t3: What's going on, Keisha?\nCLAIMANT t4: Since the rains around April 14th, water has been seeping through the cinder-block walls in our basement. There was never water standing in the yard, but the carpet along the walls is soaked and there's a musty smell.\nAGENT t5: Where is the property?\nCLAIMANT t6: 5200 Six Forks Road, Raleigh, North Carolina 27609.\nAGENT t7: Do you know roughly what it will cost?\nCLAIMANT t8: A waterproofing company quoted $7,900.\nAGENT t9: Any safety concerns?\nCLAIMANT t10: No, it's just damp. Nobody's hurt.\nAGENT t11: Photos?\nCLAIMANT t12: I'll take some tonight.\nAGENT t13: Best way to reach you?\nCLAIMANT t14: 919-555-0166."
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": []
+      },
+      "world": {
+        "policy_issues": [],
+        "benchmark": {
+          "available": true,
+          "state": "NC",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 40000,
+          "damage_p50_usd": 20000,
+          "damage_p90_usd": 80000,
+          "damage_p95_usd": 120000,
+          "report_lag_p95_days": 60
+        },
+        "weather": null
+      },
+      "expected": {
+        "claim_type": "internal_water",
+        "water_source": "seepage",
+        "routing": "human_triage",
+        "facts": {
+          "policyholder_name": "Keisha Brown",
+          "policy_number": "FLD-NC-6D8F3Z",
+          "date_of_loss": "2025-04-14",
+          "loss_address_or_city": "Raleigh",
+          "loss_state": "NC",
+          "loss_zip_code": "27609",
+          "estimated_loss_usd": 7900
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [
+            {
+              "document_type": "damage_photo",
+              "status": "planned"
+            }
+          ],
+          "safety_facts": [
+            {
+              "category": "injury",
+              "status": "absent",
+              "description": "Nobody was hurt"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "Keisha Brown",
+          "policy_number": "FLD-NC-6D8F3Z",
+          "contact_method": "919-555-0166",
+          "date_of_loss": "2025-04-14",
+          "loss_address_or_city": "5200 Six Forks Road, Raleigh, NC",
+          "loss_state": "NC",
+          "loss_zip_code": "27609",
+          "loss_description": "Groundwater has been seeping through the basement cinder-block walls since heavy rains, soaking the carpet.",
+          "water_entry_description": "seeping through basement walls; no standing water outside",
+          "estimated_loss_usd": 7900,
+          "summary": "Water has seeped through the basement walls since mid-April rains. Nobody was hurt."
+        },
+        "classification": {
+          "claim_type": "internal_water",
+          "severity": "low",
+          "severity_rationale": "seepage through walls",
+          "water_source": "seepage",
+          "water_source_rationale": "seepage through walls"
+        }
+      }
+    },
+    {
+      "eval_case_id": "core_06_wind_driven_rain_fl",
+      "description": "Hurricane winds tore off shingles and rain came through the roof; the ground floor never flooded (FEMA code 16, wind) -> internal_water / human_triage.",
+      "tags": [
+        "roof_or_wind_driven_rain",
+        "internal_water",
+        "FL",
+        "hurricane_keyword_trap"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-10-12T10:00",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-10-12T10:00\n\nConversation (source of truth; do not invent facts):\nAGENT t1: Flood claim desk, who am I speaking with?\nCLAIMANT t2: Robert Alvarez. Policy FLD-FL-5K9W2C.\nAGENT t3: What happened, Robert?\nCLAIMANT t4: When the hurricane came through on October 9th the wind ripped shingles off the roof and rain poured through the bedroom ceiling upstairs. The street drained fine; no water ever came in at ground level.\nAGENT t5: Where's the house?\nCLAIMANT t6: 1620 Cortez Road, Fort Myers, Florida 33901.\nAGENT t7: Damage estimate?\nCLAIMANT t8: The roofer says about $18,500 including the ceiling and the mattress.\nAGENT t9: Is everyone okay?\nCLAIMANT t10: Yes, we're all fine.\nAGENT t11: Do you have pictures?\nCLAIMANT t12: Yes, photos of the ceiling and the roof are on my phone.\nAGENT t13: Best number?\nCLAIMANT t14: 239-555-0148."
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": []
+      },
+      "world": {
+        "policy_issues": [],
+        "benchmark": {
+          "available": true,
+          "state": "FL",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 120000,
+          "damage_p50_usd": 25000,
+          "damage_p90_usd": 100000,
+          "damage_p95_usd": 150000,
+          "report_lag_p95_days": 60
+        },
+        "weather": null
+      },
+      "expected": {
+        "claim_type": "internal_water",
+        "water_source": "roof_or_wind_driven_rain",
+        "routing": "human_triage",
+        "facts": {
+          "policyholder_name": "Robert Alvarez",
+          "policy_number": "FLD-FL-5K9W2C",
+          "date_of_loss": "2025-10-09",
+          "loss_address_or_city": "Fort Myers",
+          "loss_state": "FL",
+          "loss_zip_code": "33901",
+          "estimated_loss_usd": 18500
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [
+            {
+              "document_type": "damage_photo",
+              "status": "available"
+            }
+          ],
+          "safety_facts": [
+            {
+              "category": "injury",
+              "status": "absent",
+              "description": "Nobody was hurt"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "Robert Alvarez",
+          "policy_number": "FLD-FL-5K9W2C",
+          "contact_method": "239-555-0148",
+          "date_of_loss": "2025-10-09",
+          "loss_address_or_city": "1620 Cortez Road, Fort Myers, FL",
+          "loss_state": "FL",
+          "loss_zip_code": "33901",
+          "loss_description": "Hurricane winds ripped shingles off the roof and rain poured through the upstairs bedroom ceiling.",
+          "water_entry_description": "rain through the damaged roof; no ground-level flooding",
+          "estimated_loss_usd": 18500,
+          "summary": "Wind damage to the roof let rain into an upstairs bedroom during the hurricane. Nobody was hurt."
+        },
+        "classification": {
+          "claim_type": "internal_water",
+          "severity": "medium",
+          "severity_rationale": "rain through roof after wind damage",
+          "water_source": "roof_or_wind_driven_rain",
+          "water_source_rationale": "rain through roof after wind damage"
+        }
+      }
+    },
+    {
+      "eval_case_id": "core_07_emergency_electrical_tx",
+      "description": "Brays Bayou overflow with outlets under water and power still on -> emergency_escalation (safety beats every other route).",
+      "tags": [
+        "surface_flood",
+        "safety",
+        "emergency",
+        "TX"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-06-02T07:45",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-06-02T07:45\n\nConversation (source of truth; do not invent facts):\nAGENT t1: Flood claim desk. Are you safe right now?\nCLAIMANT t2: I think so, but the power is still on and the outlets in the den are under water. I'm Lakshmi Iyer, policy FLD-TX-3P6V8J.\nAGENT t3: Please stay out of the water and away from the outlets. If you smell gas or see sparks, leave and call 911. What happened?\nCLAIMANT t4: Brays Bayou overflowed early this morning, June 2nd, and about eighteen inches of water came in under the doors.\nAGENT t5: What's the address?\nCLAIMANT t6: 5310 Braesvalley Drive, Houston, Texas 77096.\nAGENT t7: Do you have an idea of the damage cost yet?\nCLAIMANT t8: No idea yet, it's still coming in.\nAGENT t9: What number can we reach you on?\nCLAIMANT t10: 713-555-0171."
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": []
+      },
+      "world": {
+        "policy_issues": [],
+        "benchmark": {
+          "available": true,
+          "state": "TX",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 150000,
+          "damage_p50_usd": 22000,
+          "damage_p90_usd": 85000,
+          "damage_p95_usd": 130000,
+          "report_lag_p95_days": 45
+        },
+        "weather": {
+          "checked": true,
+          "events_found": 2,
+          "event_types": [
+            "Flash Flood",
+            "Heavy Rain"
+          ],
+          "nearest_event_km": 8.0,
+          "note": "2 NOAA flood/rain events within 50 km and 3 days (eval stub)."
+        }
+      },
+      "expected": {
+        "claim_type": "home_flood",
+        "water_source": "surface_flood",
+        "routing": "emergency_escalation",
+        "facts": {
+          "policyholder_name": "Lakshmi Iyer",
+          "policy_number": "FLD-TX-3P6V8J",
+          "date_of_loss": "2025-06-02",
+          "loss_address_or_city": "Houston",
+          "loss_state": "TX",
+          "loss_zip_code": "77096",
+          "water_depth_inches": 18,
+          "estimated_loss_usd": null
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [],
+          "safety_facts": [
+            {
+              "category": "electrical",
+              "status": "present",
+              "description": "Outlets under water with power still on"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "Lakshmi Iyer",
+          "policy_number": "FLD-TX-3P6V8J",
+          "contact_method": "713-555-0171",
+          "date_of_loss": "2025-06-02",
+          "loss_address_or_city": "5310 Braesvalley Drive, Houston, TX",
+          "loss_state": "TX",
+          "loss_zip_code": "77096",
+          "loss_description": "Brays Bayou overflowed and eighteen inches of water came in under the doors; outlets in the den are submerged with power on.",
+          "water_entry_description": "bayou overflow under the doors",
+          "water_depth_inches": 18,
+          "injuries_or_safety_concerns": [
+            "Outlets under water with power still on"
+          ],
+          "summary": "Brays Bayou flooded the home with eighteen inches of water. Outlets are submerged and the power is still on."
+        },
+        "classification": {
+          "claim_type": "home_flood",
+          "severity": "urgent",
+          "severity_rationale": "electrical hazard",
+          "water_source": "surface_flood",
+          "water_source_rationale": "electrical hazard"
+        }
+      }
+    },
+    {
+      "eval_case_id": "core_08_late_report_nc",
+      "description": "Neuse River flood reported ~6 months later; lag exceeds the state's p95 report lag -> TIMING-002 -> special_investigation.",
+      "tags": [
+        "surface_flood",
+        "late_report",
+        "siu",
+        "NC"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-09-01T13:00",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-09-01T13:00\n\nConversation (source of truth; do not invent facts):\nAGENT t1: Flood claim desk, can I have your name?\nCLAIMANT t2: Thomas Whitfield. Policy number FLD-NC-7G2H9Y.\nAGENT t3: What happened, Thomas?\nCLAIMANT t4: Back on March 10th the Neuse River flooded our street and about a foot of water got into the house. I was dealing with my mother's illness and I'm only getting to the claim now.\nAGENT t5: I'm sorry to hear that. Where is the house?\nCLAIMANT t6: 412 East Front Street, New Bern, North Carolina 28560.\nAGENT t7: Do you know the damage amount?\nCLAIMANT t8: We've spent about $31,000 on repairs so far and I have the receipts.\nAGENT t9: Is everyone safe?\nCLAIMANT t10: Yes, everyone's fine.\nAGENT t11: Best contact?\nCLAIMANT t12: 252-555-0139."
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": []
+      },
+      "world": {
+        "policy_issues": [],
+        "benchmark": {
+          "available": true,
+          "state": "NC",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 40000,
+          "damage_p50_usd": 20000,
+          "damage_p90_usd": 80000,
+          "damage_p95_usd": 120000,
+          "report_lag_p95_days": 60
+        },
+        "weather": {
+          "checked": true,
+          "events_found": 2,
+          "event_types": [
+            "Flash Flood",
+            "Heavy Rain"
+          ],
+          "nearest_event_km": 8.0,
+          "note": "2 NOAA flood/rain events within 50 km and 3 days (eval stub)."
+        }
+      },
+      "expected": {
+        "claim_type": "home_flood",
+        "water_source": "surface_flood",
+        "routing": "special_investigation",
+        "facts": {
+          "policyholder_name": "Thomas Whitfield",
+          "policy_number": "FLD-NC-7G2H9Y",
+          "date_of_loss": "2025-03-10",
+          "loss_address_or_city": "New Bern",
+          "loss_state": "NC",
+          "loss_zip_code": "28560",
+          "water_depth_inches": 12,
+          "estimated_loss_usd": 31000
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [
+            {
+              "document_type": "repair_estimate",
+              "status": "available"
+            }
+          ],
+          "safety_facts": [
+            {
+              "category": "injury",
+              "status": "absent",
+              "description": "Nobody was hurt"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "Thomas Whitfield",
+          "policy_number": "FLD-NC-7G2H9Y",
+          "contact_method": "252-555-0139",
+          "date_of_loss": "2025-03-10",
+          "loss_address_or_city": "412 East Front Street, New Bern, NC",
+          "loss_state": "NC",
+          "loss_zip_code": "28560",
+          "loss_description": "The Neuse River flooded the street and about a foot of water entered the house.",
+          "water_entry_description": "river flood water from the street",
+          "water_depth_inches": 12,
+          "estimated_loss_usd": 31000,
+          "summary": "Neuse River flooding put about a foot of water in the home in March. The claim is being reported months later."
+        },
+        "classification": {
+          "claim_type": "home_flood",
+          "severity": "medium",
+          "severity_rationale": "river flood",
+          "water_source": "surface_flood",
+          "water_source_rationale": "river flood"
+        }
+      }
+    },
+    {
+      "eval_case_id": "core_09_high_loss_no_evidence_fl",
+      "description": "Storm surge claim of $180k with no photos or documents at all -> LOSS-001 + EVID-001 -> special_investigation.",
+      "tags": [
+        "surface_flood",
+        "high_loss",
+        "no_evidence",
+        "siu",
+        "FL"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-09-18T15:30",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-09-18T15:30\n\nConversation (source of truth; do not invent facts):\nAGENT t1: Flood claim desk. Who am I speaking with?\nCLAIMANT t2: Carlos Mendez, policy FLD-FL-4T8R6B.\nAGENT t3: What happened, Carlos?\nCLAIMANT t4: The storm surge on September 15th pushed seawater into the whole ground floor, about three feet deep.\nAGENT t5: Where is the home?\nCLAIMANT t6: 3350 Main Highway, Miami, Florida 33133.\nAGENT t7: Do you have an estimate?\nCLAIMANT t8: I'd say $180,000, everything downstairs is gone.\nAGENT t9: Do you have photos or receipts?\nCLAIMANT t10: No, I don't have any photos, the cleanup crew already hauled everything out.\nAGENT t11: Is everyone safe?\nCLAIMANT t12: Yes, we evacuated before it hit.\nAGENT t13: Best number?\nCLAIMANT t14: 305-555-0194."
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": []
+      },
+      "world": {
+        "policy_issues": [],
+        "benchmark": {
+          "available": true,
+          "state": "FL",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 120000,
+          "damage_p50_usd": 25000,
+          "damage_p90_usd": 100000,
+          "damage_p95_usd": 150000,
+          "report_lag_p95_days": 60
+        },
+        "weather": {
+          "checked": true,
+          "events_found": 2,
+          "event_types": [
+            "Flash Flood",
+            "Heavy Rain"
+          ],
+          "nearest_event_km": 8.0,
+          "note": "2 NOAA flood/rain events within 50 km and 3 days (eval stub)."
+        }
+      },
+      "expected": {
+        "claim_type": "home_flood",
+        "water_source": "surface_flood",
+        "routing": "special_investigation",
+        "facts": {
+          "policyholder_name": "Carlos Mendez",
+          "policy_number": "FLD-FL-4T8R6B",
+          "date_of_loss": "2025-09-15",
+          "loss_address_or_city": "Miami",
+          "loss_state": "FL",
+          "loss_zip_code": "33133",
+          "water_depth_inches": 36,
+          "estimated_loss_usd": 180000
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [
+            {
+              "document_type": "damage_photo",
+              "status": "missing"
+            }
+          ],
+          "safety_facts": [
+            {
+              "category": "injury",
+              "status": "absent",
+              "description": "Nobody was hurt"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "Carlos Mendez",
+          "policy_number": "FLD-FL-4T8R6B",
+          "contact_method": "305-555-0194",
+          "date_of_loss": "2025-09-15",
+          "loss_address_or_city": "3350 Main Highway, Miami, FL",
+          "loss_state": "FL",
+          "loss_zip_code": "33133",
+          "loss_description": "Storm surge pushed seawater about three feet deep into the whole ground floor.",
+          "water_entry_description": "storm surge seawater",
+          "water_depth_inches": 36,
+          "estimated_loss_usd": 180000,
+          "summary": "Storm surge flooded the ground floor with three feet of seawater. The family evacuated and nobody was hurt."
+        },
+        "classification": {
+          "claim_type": "home_flood",
+          "severity": "high",
+          "severity_rationale": "deep water, large loss",
+          "water_source": "surface_flood",
+          "water_source_rationale": "deep water, large loss"
+        }
+      }
+    },
+    {
+      "eval_case_id": "core_10_policy_mismatch_la",
+      "description": "Amite River flood; caller is the policyholder's son and the registry name differs -> POLICY-001 -> policy_review.",
+      "tags": [
+        "surface_flood",
+        "policy_issue",
+        "LA"
+      ],
+      "source": "hand-written; realistic NFIP scenario (names, numbers and policy ids are fictional)",
+      "reference_time": "2025-05-30T12:00",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Reference date and time: 2025-05-30T12:00\n\nConversation (source of truth; do not invent facts):\nAGENT t1: Flood claim desk. May I have your name?\nCLAIMANT t2: Marcus Carter. The policy is FLD-LA-2C5M7K.\nAGENT t3: Thank you. What happened?\nCLAIMANT t4: On May 27th the Amite River rose and about ten inches of water came into the house.\nAGENT t5: What's the address?\nCLAIMANT t6: 7815 Highland Road, Baton Rouge, Louisiana 70808.\nAGENT t7: Estimated damage?\nCLAIMANT t8: Roughly $26,000.\nAGENT t9: Is anyone hurt?\nCLAIMANT t10: No, we're all okay.\nAGENT t11: Do you have photos?\nCLAIMANT t12: Yes, on my phone.\nAGENT t13: Best contact number?\nCLAIMANT t14: 225-555-0112."
+          }
+        ]
+      },
+      "session_state": {
+        "received_evidence": []
+      },
+      "world": {
+        "policy_issues": [
+          "Claimant name differs from the policy record"
+        ],
+        "benchmark": {
+          "available": true,
+          "state": "LA",
+          "note": "Eval stub (illustrative, not real FEMA numbers)",
+          "sample_size": 180000,
+          "damage_p50_usd": 28000,
+          "damage_p90_usd": 95000,
+          "damage_p95_usd": 140000,
+          "report_lag_p95_days": 50
+        },
+        "weather": {
+          "checked": true,
+          "events_found": 2,
+          "event_types": [
+            "Flash Flood",
+            "Heavy Rain"
+          ],
+          "nearest_event_km": 8.0,
+          "note": "2 NOAA flood/rain events within 50 km and 3 days (eval stub)."
+        }
+      },
+      "expected": {
+        "claim_type": "home_flood",
+        "water_source": "surface_flood",
+        "routing": "policy_review",
+        "facts": {
+          "policyholder_name": "Marcus Carter",
+          "policy_number": "FLD-LA-2C5M7K",
+          "date_of_loss": "2025-05-27",
+          "loss_address_or_city": "Baton Rouge",
+          "loss_state": "LA",
+          "loss_zip_code": "70808",
+          "water_depth_inches": 10,
+          "estimated_loss_usd": 26000
+        }
+      },
+      "golden_outputs": {
+        "claim_facts": {
+          "evidence_records": [
+            {
+              "document_type": "damage_photo",
+              "status": "available"
+            }
+          ],
+          "safety_facts": [
+            {
+              "category": "injury",
+              "status": "absent",
+              "description": "Nobody was hurt"
+            }
+          ],
+          "missing_or_uncertain_facts": [],
+          "policyholder_name": "Marcus Carter",
+          "policy_number": "FLD-LA-2C5M7K",
+          "contact_method": "225-555-0112",
+          "date_of_loss": "2025-05-27",
+          "loss_address_or_city": "7815 Highland Road, Baton Rouge, LA",
+          "loss_state": "LA",
+          "loss_zip_code": "70808",
+          "loss_description": "The Amite River rose and about ten inches of water entered the house.",
+          "water_entry_description": "river rose into the house",
+          "water_depth_inches": 10,
+          "estimated_loss_usd": 26000,
+          "summary": "Amite River flooding put ten inches of water in the home. Nobody was hurt."
+        },
+        "classification": {
+          "claim_type": "home_flood",
+          "severity": "medium",
+          "severity_rationale": "river flood",
+          "water_source": "surface_flood",
+          "water_source_rationale": "river flood"
+        }
+      }
+    }
+  ]
+}

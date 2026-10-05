@@ -1,0 +1,26 @@
+# Files NOT sent to Cloud Build / not baked into the image.
+# Keeps the image small and - importantly - keeps secrets and local data out.
+.env
+.env.*
+!.env.example
+.venv/
+uv.lock
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.gitignore
+data/
+tests/
+evals/
+data_pipeline/
+docs/
+deploy/
+scripts/
+node_modules/
+*.zip
+*.ndjson
+*.jsonl
+*.gz
+grounding/
+*.pdf

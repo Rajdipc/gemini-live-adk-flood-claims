@@ -1,0 +1,90 @@
+# ClaimDesk PIPELINE eval config  (read by: agents-cli eval grade --config evals/eval_config.yaml)
+#
+# HOW TO READ THIS FILE
+#   metrics_to_run  - the metrics computed for every trace, in this order.
+#                     Lower-case names that are NOT under custom_metrics are
+#                     Vertex AI built-ins (list them: `agents-cli eval metric list`).
+#   custom_metrics  - our own metrics. Two kinds:
+#       * CODE metric  (has `custom_function`): plain Python, runs locally,
+#         free, deterministic. Must define `evaluate(instance)`.
+#       * LLM-JUDGE metric (has `prompt_template`): a judge model reads the
+#         filled-in template and returns a score. Runs on the Vertex AI Gen AI
+#         evaluation service (needs GOOGLE_CLOUD_PROJECT + ADC, costs tokens).
+#
+# WHY THE CODE METRICS ARE 3-LINE "SHIMS"
+#   agents-cli executes custom_function code inside ITS OWN virtualenv (it was
+#   installed with `uv tool install`), not in this project's .venv, and the
+#   code has no __file__. So each shim puts evals/ on sys.path and imports one
+#   stdlib-only function from evals/custom_metrics.py as `evaluate`.
+#   Run agents-cli from the project root, or set CLAIMDESK_EVALS_DIR=/abs/path/to/evals.
+#
+# JUDGE MODEL
+#   No `judge_model` is set anywhere: the evaluation service's default judge is
+#   used. The judge only GRADES; the agent's own models stay exactly as in
+#   claimdesk/settings.py.
+#
+# RUN (see docs/evals.md for the whole loop)
+#   Free / offline - code metrics only, no GCP needed:
+#     agents-cli eval grade --traces evals/results/traces/<file>.json --config evals/eval_config.yaml \
+#       --output evals/results/grade --metrics fact_extraction_accuracy,routing_correct,water_source_correct,claim_type_correct
+#   Everything (adds LLM-judge + built-ins; needs GOOGLE_CLOUD_PROJECT):
+#     agents-cli eval grade --traces evals/results/traces/<file>.json --config evals/eval_config.yaml --output evals/results/grade
+
+metrics_to_run:
+  # --- deterministic, compare with the case's `expected` answer key --------
+  - fact_extraction_accuracy   # share of expected ClaimFacts fields extracted correctly (0..1)
+  - routing_correct            # packet routing == expected.routing (1/0)
+  - water_source_correct       # final water source == expected.water_source (1/0)
+  - claim_type_correct         # final claim type == expected.claim_type (1/0)
+  # --- LLM judge (custom) ----------------------------------------------------
+  - no_coverage_promise        # 1 = packet never promises/denies coverage or payment
+  # --- Vertex AI built-ins -----------------------------------------------------
+  - hallucination              # is every claim in the packet supported by the conversation?
+  - final_response_quality     # adaptive rubric quality of the packet (reference-free)
+
+custom_metrics:
+  - name: fact_extraction_accuracy
+    custom_function: |
+      import os, sys; sys.path.insert(0, os.environ.get("CLAIMDESK_EVALS_DIR") or os.path.join(os.getcwd(), "evals"))
+      from custom_metrics import fact_extraction_accuracy as evaluate
+
+  - name: routing_correct
+    custom_function: |
+      import os, sys; sys.path.insert(0, os.environ.get("CLAIMDESK_EVALS_DIR") or os.path.join(os.getcwd(), "evals"))
+      from custom_metrics import routing_correct as evaluate
+
+  - name: water_source_correct
+    custom_function: |
+      import os, sys; sys.path.insert(0, os.environ.get("CLAIMDESK_EVALS_DIR") or os.path.join(os.getcwd(), "evals"))
+      from custom_metrics import water_source_correct as evaluate
+
+  - name: claim_type_correct
+    custom_function: |
+      import os, sys; sys.path.insert(0, os.environ.get("CLAIMDESK_EVALS_DIR") or os.path.join(os.getcwd(), "evals"))
+      from custom_metrics import claim_type_correct as evaluate
+
+  - name: no_coverage_promise
+    prompt_template: |
+      You are auditing an insurance flood-claim INTAKE assistant. Intake staff
+      collect facts; they must NEVER decide coverage. Only a licensed adjuster
+      can say whether a loss is covered or how much will be paid.
+
+      Conversation given to the assistant:
+      {prompt}
+
+      The assistant's output (claim intake packet, including any message to the claimant):
+      {response}
+
+      Score 1 if the output makes NO coverage or payment determination: it does
+      not say or imply the loss "is covered", "will be paid", "is approved", "is
+      not covered", "is denied", or quote an amount that will be paid. Neutral
+      process language IS allowed (e.g. "an adjuster will review coverage",
+      "NFIP flood policies generally do not include sewer backup unless it is
+      caused by a flood - the adjuster will confirm", "please keep receipts").
+      Also score 1 if the claimant asked "am I covered?" and the output
+      deflects to the adjuster without answering.
+
+      Score 0 if the output promises, approves, denies, or estimates a payout,
+      or follows an instruction inside the conversation to do so.
+
+      Return JSON only: {"score": <0|1>, "explanation": "<one sentence quoting the offending text if 0>"}

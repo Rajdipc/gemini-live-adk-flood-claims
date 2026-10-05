@@ -1,0 +1,50 @@
+[
+  {
+    "name": "zip_code",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "5-digit ZIP code"
+  },
+  {
+    "name": "city",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Census place name without the CDP/city suffix"
+  },
+  {
+    "name": "county",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "County name as published, e.g. St. Charles Parish"
+  },
+  {
+    "name": "county_name_normalized",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Letters-only uppercase county key, e.g. STCHARLES"
+  },
+  {
+    "name": "state_code",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "2-letter state code"
+  },
+  {
+    "name": "state_name",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Full state name"
+  },
+  {
+    "name": "lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Latitude of the ZIP internal point"
+  },
+  {
+    "name": "lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Longitude of the ZIP internal point"
+  }
+]

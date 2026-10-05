@@ -1,0 +1,92 @@
+[
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "NOAA event id (unique after de-duplication)"
+  },
+  {
+    "name": "event_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Canonical event type, e.g. Flash Flood"
+  },
+  {
+    "name": "state",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Full uppercase state name, e.g. TEXAS"
+  },
+  {
+    "name": "state_code",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "2-letter state code"
+  },
+  {
+    "name": "state_fips",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "State FIPS number, e.g. 48"
+  },
+  {
+    "name": "cz_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "C = county/parish, Z = forecast zone"
+  },
+  {
+    "name": "cz_fips_code",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "County or zone FIPS number"
+  },
+  {
+    "name": "cz_name",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "County or zone name, uppercase"
+  },
+  {
+    "name": "event_begin_time",
+    "type": "DATETIME",
+    "mode": "NULLABLE",
+    "description": "Event start, local time of the event (Parquet stores it as a timestamp without time zone, so we force DATETIME)"
+  },
+  {
+    "name": "event_date",
+    "type": "DATE",
+    "mode": "NULLABLE",
+    "description": "DATE(event_begin_time)"
+  },
+  {
+    "name": "lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Latitude (NULL when NOAA has no point)"
+  },
+  {
+    "name": "lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Longitude (NULL when NOAA has no point)"
+  },
+  {
+    "name": "damage_property",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Property damage estimate in USD"
+  },
+  {
+    "name": "flood_cause",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "NOAA flood cause text, e.g. Heavy Rain"
+  },
+  {
+    "name": "source_rows",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "How many source rows (polygon corners) were merged into this event"
+  }
+]

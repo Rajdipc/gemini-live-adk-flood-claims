@@ -1,0 +1,86 @@
+# =============================================================================
+# pyproject.toml — the single source of truth for this Python project.
+#
+# WHAT IS THIS FILE?
+#   Modern Python projects describe their name, Python version and
+#   dependencies here (it replaces the old `requirements.txt`). We use `uv`
+#   (a very fast Python package manager) to read it:
+#
+#       uv sync                 # create .venv and install runtime deps
+#       uv sync --extra data    # + libraries for the one-time data load
+#       uv sync --extra dev     # + test / eval tooling
+#
+# WHY THESE LIBRARIES?
+#   google-adk              -> Agent Development Kit: runs our claim pipeline
+#   google-genai            -> Gemini SDK (Vertex AI mode): Live, Flash, Image
+#   google-cloud-bigquery   -> policy registry, loss benchmarks, NOAA weather
+#   google-cloud-storage    -> photos, sketches, packet ZIPs
+#   google-cloud-firestore  -> intake state that survives restarts
+#   google-cloud-logging    -> structured JSON logs understood by Cloud Logging
+#                              and Error Reporting
+#   opentelemetry-*         -> request/agent traces exported to Cloud Trace
+#   fastapi + uvicorn       -> the web server running on Cloud Run
+#   tzdata                  -> time-zone database for Python's zoneinfo
+#                              (python:*-slim images have no /usr/share/zoneinfo;
+#                              needed for dates like "yesterday" in America/Chicago)
+# =============================================================================
+
+[project]
+name = "claimdesk"
+version = "0.1.0"
+description = "Voice-first flood claim intake (FNOL) agent on Google Cloud: Gemini Live + ADK Workflows + Vertex AI Search + BigQuery (FEMA NFIP & NOAA data)."
+readme = "README.md"
+requires-python = ">=3.12"
+# Keywords mirror the GitHub topics of the gemini-live-adk-flood-claims repo.
+keywords = [
+    "gemini-live", "google-adk", "agent-development-kit", "vertex-ai-search",
+    "bigquery", "cloud-run", "voice-agent", "multimodal-ai", "agent-skills",
+    "llm-evaluation", "flood-insurance", "fnol", "insurtech",
+]
+dependencies = [
+    "google-adk>=2.9.0",
+    "google-genai>=2.20.0",
+    "google-cloud-bigquery>=3.40.0",
+    "google-cloud-storage>=3.0.0",
+    "google-cloud-firestore>=2.20.0",
+    "google-cloud-logging>=3.12.0",
+    "opentelemetry-sdk>=1.30.0",
+    "opentelemetry-exporter-gcp-trace>=1.9.0",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",  # FastAPI needs it to parse photo uploads (multipart/form-data)
+    "google-auth[requests]>=2.30",  # verifies the IAP-signed JWT (defence in depth)
+    "pydantic>=2.7",
+    "typing-extensions>=4.12",
+    "tzdata>=2024.1",  # zoneinfo data for slim containers (see header)
+]
+
+[project.optional-dependencies]
+# Only needed on your laptop to download OpenFEMA data and load BigQuery.
+data = [
+    "requests>=2.32",
+]
+# Tests and evals. Not installed into the Cloud Run container.
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "pyyaml>=6.0",  # evals read evals/eval_config*.yaml
+    # Vertex AI Gen AI evaluation service (`vertexai.Client().evals`), used by
+    # evals/run_vertex_eval.py. The [evaluation] extra adds pandas & friends.
+    "google-cloud-aiplatform[evaluation]>=2.0,<3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+# Unit tests must never call real Google Cloud services. `tests/conftest.py`
+# forces the in-memory storage backend and stubs BigQuery.
+addopts = "-q"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["claimdesk", "webapp"]

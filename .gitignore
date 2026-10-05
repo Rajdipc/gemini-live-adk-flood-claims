@@ -1,0 +1,39 @@
+# Environment & secrets (keep .env.example tracked)
+.env
+.env.*
+!.env.example
+*credentials*.json
+*service-account*.json
+
+# Python & uv
+.venv/
+uv.lock
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Downloaded / generated data & eval outputs
+data/
+grounding/raw/
+evals/results/
+*.ndjson
+*.jsonl
+*.parquet
+*.pdf
+
+# Archives & build artifacts
+*.zip
+*.tgz
+*.tar.gz
+node_modules/
+scratch/
+
+# OS / Editor files
+.DS_Store
+.vscode/
+.idea/
+*~
