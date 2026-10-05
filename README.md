@@ -64,7 +64,7 @@ Then follow [section 4](#4-set-up-and-deploy-step-by-step-cloud-shell), or [RUNB
 5. [Test the deployed app, step by step](#5-test-the-deployed-app-step-by-step)
 6. [Grade calls, update, roll back, destroy](#6-grade-calls-update-roll-back-destroy)
 7. [Documentation map and engineering practices](#7-documentation-map-and-engineering-practices)
-8. [Contributing, credits and keywords](#8-contributing-credits-and-keywords)
+8. [Contributing and keywords](#8-contributing-and-keywords)
 
 ---
 
@@ -634,14 +634,12 @@ Details: [RUNBOOK Phase 13](RUNBOOK.md#phase-13-destroy-everything).
 
 ---
 
-## 8. Contributing, credits and keywords
+## 8. Contributing and keywords
 
 **Contributing.** Issues and pull requests are welcome. Before opening a PR, run the offline suite (no GCP needed):
 ```bash
 GOOGLE_CLOUD_PROJECT=x uv run --no-sync pytest -q -p no:warnings && node tests/test_desk_ui.cjs
 ```
-
-**Credits:** inspired by the open-source *insurance claim live agent team* example in [awesome-llm-apps](https://github.com/Shubhamsaboo/awesome-llm-apps). Demo Tideline is a ground-up, GCP-native redesign on real public FEMA and NOAA data. This product uses the FEMA OpenFEMA API, but is not endorsed by FEMA.
 
 **🏷️ Topics:** `gemini` · `gemini-live` · `gemini-api` · `google-adk` · `agent-development-kit` · `vertex-ai` · `vertex-ai-search` · `ai-agents` · `multi-agent-systems` · `voice-agent` · `multimodal-ai` · `realtime-ai` · `agent-skills` · `rag` · `llm-evaluation` · `google-cloud` · `bigquery` · `cloud-run` · `fastapi` · `insurtech`
 
