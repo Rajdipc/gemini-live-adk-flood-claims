@@ -296,18 +296,80 @@ flowchart TD
 ### 3.5 Repository map
 
 ```text
-claimdesk/            ADK package: settings, contracts, errors, observability, knowledge (skill loader),
-                      intake_pipeline (Workflow), prompts/, rules/, data_access/ (BigQuery + Vertex AI Search)
-skills/nfip-flood-intake/   ADK Agent Skill: SKILL.md + 7 references
-webapp/               FastAPI + WebSocket: main, live_bridge, voice_tools, tool_handlers, intake_session,
-                      intake_store (Firestore), evidence_store (GCS), packet_archive, trace_logger,
-                      desk_view, error_logging, static/ (index.html, claim.js, claim.css)
-data_pipeline/        OpenFEMA v3 -> GCS -> BigQuery (fetch_openfema, load_to_bigquery, sql/, schemas/)
-grounding/            FEMA document list + fetcher/uploader for Vertex AI Search
-evals/                datasets, eval_config(.yaml/_live.yaml), custom metrics, trace generation/export, Vertex eval
-deploy/               00 variables, 01 APIs, 02 IAM, 03 storage, 03b search, 04 build, 05 deploy, 06 IAP, 07 budget, 99 destroy
-scripts/              check_models.py, post_deploy_checks.sh, browser_api_checks.js
-docs/                 all guides        tests/   ~560 pytest + 44 Node UI tests (no cloud calls)
+gemini-live-adk-flood-claims/
+├── claimdesk/                          # Core ADK package (workflows, rules, data access)
+│   ├── intake_pipeline.py              # 8-step ADK 2.x Workflow (root_agent + Runner)
+│   ├── knowledge.py                    # ADK Agent Skill loader (SKILL.md + references)
+│   ├── contracts.py                    # Pydantic schemas shared across agents and rules
+│   ├── settings.py                     # Typed environment config (.env + Cloud Run vars)
+│   ├── observability.py                # Structured Cloud Logging, Cloud Trace, PII redaction
+│   ├── errors.py                       # Typed exceptions with user-safe messages
+│   ├── prompts/                        # System instructions for fact_extractor & claim_classifier
+│   ├── rules/                          # Deterministic rules (required_fields, water_source,
+│   │                                   #   evidence_rules, risk_signals, packet_writer)
+│   └── data_access/                    # BigQuery (policies, benchmarks, NOAA) + Vertex AI Search
+│
+├── skills/
+│   └── nfip-flood-intake/              # ADK Agent Skill (SKILL.md + 7 NFIP reference guides)
+│
+├── webapp/                             # Cloud Run web app (FastAPI + WebSocket + static UI)
+│   ├── main.py                         # HTTP/WebSocket routes, IAP JWT verification, limits
+│   ├── live_bridge.py                  # Browser <-> Gemini Live audio/video/text + GoAway resume
+│   ├── voice_tools.py                  # Maya's persona + 5 NON_BLOCKING Live tool declarations
+│   ├── tool_handlers.py                # Tool implementations (lookup, verify photo, sketch, etc.)
+│   ├── intake_session.py               # In-memory session registry + coalesced pipeline runner
+│   ├── intake_store.py                 # Firestore persistence (with memory fallback for tests)
+│   ├── evidence_store.py               # GCS evidence photo & packet storage
+│   ├── packet_archive.py               # Builds packet ZIP -> GCS + BigQuery intake_packets row
+│   ├── trace_logger.py                 # Batched BigQuery conversation_traces writer
+│   ├── desk_view.py                    # Shapes backend state for the live UI panel
+│   └── static/                         # Single-page UI (index.html, claim.js, claim.css)
+│
+├── data_pipeline/                      # FEMA OpenFEMA v3 + NOAA + US ZIP -> BigQuery pipeline
+│   ├── fetch_openfema.py               # Resumable OpenFEMA v3 downloader + GCS uploader
+│   ├── load_to_bigquery.py             # Loads staging tables and runs SQL transforms in order
+│   ├── nfip_codes.py                   # NFIP code decoders & deterministic identity generator
+│   ├── schemas/                        # BigQuery JSON schemas for staging tables
+│   └── sql/                            # 00_create, 10_policy_registry, 20_loss_benchmarks,
+│                                       #   30_claims_reference, 40_eval_seed_claims, reference/
+│
+├── grounding/                          # Vertex AI Search grounding corpus
+│   ├── fema_documents.json             # Manifest of official FEMA NFIP manuals & forms
+│   └── fetch_fema_docs.py              # Downloads public PDFs and uploads to GCS for indexing
+│
+├── evals/                              # End-to-end evaluation suite (ADK + Vertex AI Gen AI Eval)
+│   ├── datasets/                       # Golden datasets (pipeline_core.json, pipeline_edge.json)
+│   ├── eval_config.yaml                # Offline pipeline eval config (agents-cli)
+│   ├── eval_config_live.yaml           # Live multi-turn trace eval config
+│   ├── custom_metrics.py               # Deterministic & LLM-judge rubrics (no_coverage_promise)
+│   ├── build_eval_cases.py             # Builds eval cases from BigQuery eval_seed_claims
+│   ├── generate_traces.py              # Generates synthetic multi-turn traces for grading
+│   ├── export_live_traces.py           # Exports real BigQuery conversation_traces for grading
+│   └── run_vertex_eval.py              # Runs Vertex AI Gen AI Evaluation Service
+│
+├── deploy/                             # Step-by-step manual Cloud Shell deployment scripts
+│   ├── 00_variables.sh                 # Loads and validates .env variables
+│   ├── 01_enable_apis.sh               # Enables required Google Cloud APIs
+│   ├── 02_service_account_iam.sh       # Creates least-privilege runtime service account
+│   ├── 03_storage_firestore_bigquery.sh # Creates GCS bucket, Firestore DB, BigQuery dataset
+│   ├── 03b_vertex_ai_search.sh         # Creates Vertex AI Search data store & engine + imports PDFs
+│   ├── 04_build_image.sh               # Builds container image via Cloud Build -> Artifact Registry
+│   ├── 05_deploy_cloud_run.sh          # Deploys private Cloud Run service behind IAP
+│   ├── 06_grant_iap_access.sh          # Grants IAP access to DEPLOY_IAP_USER_EMAIL
+│   ├── 07_budget_and_alerts.sh         # Creates billing budget and error log metric
+│   └── 99_destroy.sh                   # Tears down all created project resources
+│
+├── scripts/                            # Preflight & post-deployment verification scripts
+│   ├── check_models.py                 # Verifies Gemini Live, Flash, and Image model access
+│   ├── post_deploy_checks.sh           # Automated L0 infrastructure & IAM checks
+│   └── browser_api_checks.js           # In-browser DevTools console checks behind IAP
+│
+├── docs/                               # Deep-dive guides (architecture, data, grounding, evals, cost)
+├── tests/                              # ~560 pytest unit/workflow tests + 44 Node UI tests (offline)
+├── RUNBOOK.md                          # Single ordered Cloud Shell runbook (deploy -> test -> destroy)
+├── Dockerfile                          # Production container image (Python 3.12 + uv, non-root)
+├── pyproject.toml                      # Dependencies and project metadata
+└── .env.example                        # Template for .env configuration
 ```
 
 ---
