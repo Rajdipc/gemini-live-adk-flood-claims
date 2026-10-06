@@ -36,6 +36,7 @@ unset _line _key _val
 
 # ---- Short names used by the numbered scripts (all derived from .env) --------
 export PROJECT_ID="${GOOGLE_CLOUD_PROJECT}"
+export CLOUDSDK_CORE_PROJECT="${PROJECT_ID}"
 export REGION="${CLAIMDESK_REGION:-us-central1}"
 export BQ_LOCATION="${CLAIMDESK_BQ_LOCATION:-${REGION}}"
 export BQ_DATASET="${CLAIMDESK_BQ_DATASET:-claimdesk}"
