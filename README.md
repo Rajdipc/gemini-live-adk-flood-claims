@@ -10,8 +10,29 @@
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![FastAPI](https://img.shields.io/badge/FastAPI-WebSocket-009688?logo=fastapi&logoColor=white)](webapp/main.py)
 [![Offline tests](https://img.shields.io/badge/offline_tests-pytest_%2B_Node_UI-2ea44f)](tests/)
+[![Medium](https://img.shields.io/badge/Medium-Google_Cloud_Publication-black?logo=medium&logoColor=white)](https://medium.com/google-cloud/beyond-the-chatbot-building-a-real-time-multimodal-flood-claim-desk-with-gemini-live-and-adk-c44ca8f55b48)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://console.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/Rajdipc/gemini-live-adk-flood-claims.git&cloudshell_open_in_editor=README.md)
+
+> 📰 **Companion Technical Deep Dive (Google Cloud Community):** **[Beyond the Chatbot: Building a Real-Time Multimodal Flood-Claim Desk with Gemini Live and ADK](https://medium.com/google-cloud/beyond-the-chatbot-building-a-real-time-multimodal-flood-claim-desk-with-gemini-live-and-adk-c44ca8f55b48)**  
+> ⭐ *If you find this reference architecture useful, please **star this repository**!*
 
 > **Real-time voice, vision and text flood-claim agent on Google Cloud.** It combines the **Gemini Live API**, **Google ADK 2.x Workflows**, an **ADK Agent Skill**, **Vertex AI Search** grounding and **BigQuery**. The BigQuery data is **real FEMA NFIP and NOAA storm data**. The app runs privately on **Cloud Run behind IAP**, and **GCP-native evals** measure its quality.
+
+| 🎥 Live Demo Walkthrough ([Watch Full MP4 Video](docs/Video/Demo%20video.mp4)) | 🏗️ System Architecture Overview |
+| :---: | :---: |
+| [![Demo Tideline Live Walkthrough](docs/images/demo_walkthrough.gif)](docs/Video/Demo%20video.mp4) | ![Demo Tideline System Shape](docs/images/diagram_1_system_shape.png) |
+
+<details>
+<summary><strong>Expand Detailed Architecture, Live Bridge Sequence & ADK 2.x Workflow DAG Diagrams</strong></summary>
+
+![Detailed System Architecture](docs/images/diagram_2_architecture_detail.png)
+
+![Gemini Live WebSocket Bridge Sequence](docs/images/diagram_3_live_bridge_sequence.png)
+
+![Google ADK 2.x Workflow DAG](docs/images/diagram_4_adk_workflow_dag.png)
+
+</details>
 
 **Demo Tideline** is a fictitious flood insurer. Its voice agent, **Maya**, takes a first notice of loss (FNOL) for a **residential flood claim** in real time, by **voice, typing, live camera and photo upload**.
 
